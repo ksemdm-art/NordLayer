@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap&subset=latin,cyrillic');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NordLayer Brand Colors - Точные цвета из брендбука */
+:root {
+  /* Северный синий - Чистота, глубина */
+  --nord-blue: #1B2A41;
+  
+  /* Ледяной белый - Простота, ясность */
+  --ice-white: #F4F7FA;
+  
+  /* Холодный серый - Технологичность */
+  --cold-gray: #8E9BAE;
+  
+  /* Медный акцент - Ремесло, тепло */
+  --copper-accent: #C68642;
+  
+  /* Primary Nordic Blue Palette - на основе северного синего */
+  --nord-blue-50: #F4F7FA;   /* Ледяной белый */
+  --nord-blue-100: #E8EEF5;  /* Светлый оттенок ледяного белого */
+  --nord-blue-200: #D1DDE9;  /* Еще светлее холодного серого */
+  --nord-blue-300: #AFC2D6;  /* Светлый холодный серый */
+  --nord-blue-400: #8E9BAE;  /* Холодный серый - технологичность */
+  --nord-blue-500: #6B7A8F;  /* Средний холодный серый */
+  --nord-blue-600: #556275;  /* Темнее холодного серого */
+  --nord-blue-700: #465060;  /* Еще темнее */
+  --nord-blue-800: #334155;  /* Переход к северному синему */
+  --nord-blue-900: #1B2A41;  /* Северный синий - чистота, глубина */
+  --nord-blue-950: #0F1A2A;  /* Самый темный северный синий */
+  
+  /* Copper Accent Palette - на основе медного акцента */
+  --copper-50: #FEF7ED;   /* Очень светлый медный */
+  --copper-100: #FDEDD3;  /* Светлый медный */
+  --copper-200: #FBD7A5;  /* Светлее медного */
+  --copper-300: #F8BC6D;  /* Светлый медный акцент */
+  --copper-400: #E2A574;  /* Промежуточный медный */
+  --copper-500: #C68642;  /* Медный акцент - ремесло, тепло (основной) */
+  --copper-600: #B8722A;  /* Темнее медного */
+  --copper-700: #A05A1F;  /* Еще темнее */
+  --copper-800: #8B4A1C;  /* Темный медный */
+  --copper-900: #73391A;  /* Очень темный медный */
+  --copper-950: #3E1C0B;  /* Самый темный медный */
+  
+  /* Brand Color Aliases - точные цвета брендбука */
+  --nord-primary: #1B2A41;                  /* Северный синий - чистота, глубина */
+  --nord-ice: #F4F7FA;                      /* Ледяной белый - простота, ясность */
+  --nord-gray: #8E9BAE;                     /* Холодный серый - технологичность */
+  --nord-copper: #C68642;                   /* Медный акцент - ремесло, тепло */
+  
+  /* Semantic Color Mappings - на основе брендбука */
+  --color-background: var(--nord-ice);      /* Ледяной белый как основной фон */
+  --color-surface: #ffffff;                 /* Чистый белый для поверхностей */
+  --color-text-primary: var(--nord-primary); /* Северный синий для основного текста */
+  --color-text-secondary: var(--nord-gray); /* Холодный серый для вторичного текста */
+  --color-accent: var(--nord-copper);       /* Медный акцент для выделений */
+  --color-border: #D1DDE9;                  /* Светлый холодный серый для границ */
+}
+
+/* Global styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  /* Улучшенное отображение кириллицы */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Design System Base Styles */
+@layer base {
+  html {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  body {
+    @apply font-sans text-primary-900 bg-primary-50;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-primary-900;
+  }
+}
+
+/* Design System Components */
+@layer components {
+  .ds-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .ds-section {
+    @apply py-12 lg:py-16;
+  }
+  
+  .ds-card {
+    @apply bg-white rounded-xl shadow-soft border border-primary-200 overflow-hidden;
+  }
+  
+  .ds-button {
+    @apply inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .ds-input {
+    @apply w-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 border border-primary-300 rounded-lg bg-white;
+  }
+  
+  .ds-badge {
+    @apply inline-flex items-center gap-1 font-medium transition-colors duration-200;
+  }
+}
+
+/* Design System Utilities */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+  
+  .animate-bounce-soft {
+    animation: bounceSoft 0.6s ease-in-out infinite;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+  
+  .shadow-medium {
+    box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .shadow-hard {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(27, 42, 65, 0.2);
+  }
+  
+  .shadow-glow-accent {
+    box-shadow: 0 0 20px rgba(198, 134, 66, 0.3);
+  }
+  
+  .shadow-nordic {
+    box-shadow: 0 4px 20px -2px rgba(27, 42, 65, 0.1), 0 2px 8px -2px rgba(27, 42, 65, 0.06);
+  }
+  
+  .shadow-aurora {
+    box-shadow: 0 0 30px rgba(198, 134, 66, 0.2), 0 0 60px rgba(27, 42, 65, 0.1);
+  }
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+  0% { transform: translateY(-10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounceSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}

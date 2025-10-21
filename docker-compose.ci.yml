@@ -1,0 +1,160 @@
+# Docker Compose configuration for CI/CD
+# Optimized for automated testing and deployment
+
+services:
+  # PostgreSQL for CI
+  postgres-ci:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: printing_platform_ci
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Redis for CI
+  redis-ci:
+    image: redis:7-alpine
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Backend CI tests
+  backend-ci:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-ci:5432/printing_platform_ci
+      - REDIS_URL=redis://redis-ci:6379
+      - ENVIRONMENT=ci
+      - DEBUG=false
+      - SECRET_KEY=ci-secret-key
+      - PYTHONPATH=/app
+    depends_on:
+      postgres-ci:
+        condition: service_healthy
+      redis-ci:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ci_coverage:/app/htmlcov
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Installing dependencies...' &&
+        pip install -r requirements.txt &&
+        echo 'Running database migrations...' &&
+        alembic upgrade head &&
+        echo 'Running linting...' &&
+        flake8 app/ --max-line-length=100 --exclude=migrations &&
+        echo 'Running type checking...' &&
+        mypy app/ --ignore-missing-imports &&
+        echo 'Running tests with coverage...' &&
+        pytest -v --cov=app --cov-report=html --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml &&
+        echo 'Tests completed successfully!'
+      "
+
+  # Frontend CI tests
+  frontend-ci:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - NODE_ENV=test
+      - CI=true
+      - VITE_API_URL=http://backend-ci:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ci_frontend_coverage:/app/coverage
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Installing dependencies...' &&
+        npm ci &&
+        echo 'Running linting...' &&
+        npm run lint &&
+        echo 'Running type checking...' &&
+        npm run type-check &&
+        echo 'Running unit tests...' &&
+        npm run test:unit -- --coverage --reporter=junit --outputFile=test-results.xml &&
+        echo 'Building application...' &&
+        npm run build &&
+        echo 'Frontend tests completed successfully!'
+      "
+
+  # Telegram bot CI tests
+  telegram-bot-ci:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    environment:
+      - TELEGRAM_BOT_TOKEN=ci-test-token
+      - API_BASE_URL=http://backend-ci:8000
+      - ENVIRONMENT=ci
+      - DEBUG=false
+      - PYTHONPATH=/app
+    volumes:
+      - ./telegram-bot:/app
+      - ci_bot_coverage:/app/htmlcov
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Installing dependencies...' &&
+        pip install -r requirements.txt &&
+        echo 'Running linting...' &&
+        flake8 . --max-line-length=100 --exclude=__pycache__ &&
+        echo 'Running type checking...' &&
+        mypy . --ignore-missing-imports &&
+        echo 'Running tests with coverage...' &&
+        pytest -v --cov=. --cov-report=html --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml &&
+        echo 'Bot tests completed successfully!'
+      "
+
+  # Security scanning
+  security-scan:
+    image: aquasec/trivy:latest
+    volumes:
+      - ./:/workspace
+      - trivy_cache:/root/.cache/trivy
+    working_dir: /workspace
+    command: >
+      sh -c "
+        echo 'Running security scans...' &&
+        trivy fs --format json --output security-report.json . &&
+        trivy fs --severity HIGH,CRITICAL . &&
+        echo 'Security scan completed!'
+      "
+
+  # Docker image scanning
+  image-scan:
+    image: aquasec/trivy:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - trivy_cache:/root/.cache/trivy
+    command: >
+      sh -c "
+        echo 'Scanning Docker images...' &&
+        trivy image --format json --output backend-image-scan.json nordlayer/backend:latest &&
+        trivy image --format json --output frontend-image-scan.json nordlayer/frontend:latest &&
+        trivy image --format json --output bot-image-scan.json nordlayer/telegram-bot:latest &&
+        echo 'Image scanning completed!'
+      "
+
+volumes:
+  ci_coverage:
+  ci_frontend_coverage:
+  ci_bot_coverage:
+  trivy_cache:

@@ -1,0 +1,28 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="apple-icon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1B2A41;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8E9BAE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C68642;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Фон с градиентом -->
+  <rect width="180" height="180" rx="40" fill="url(#apple-icon-gradient)"/>
+  
+  <!-- Символ слоёв (увеличенный для Apple Touch Icon) -->
+  <g id="layers-symbol-large">
+    <!-- Основание -->
+    <rect x="30" y="135" width="120" height="15" rx="7.5" fill="#F4F7FA" opacity="0.9"/>
+    <!-- Средний слой -->
+    <rect x="40" y="105" width="100" height="15" rx="7.5" fill="#F4F7FA"/>
+    <!-- Верхний слой -->
+    <rect x="50" y="75" width="80" height="15" rx="7.5" fill="#F4F7FA"/>
+    <!-- Вершина -->
+    <circle cx="90" cy="50" r="12" fill="#F4F7FA"/>
+    
+    <!-- Северная звезда (символ точности) -->
+    <path d="M90 25 L93 35 L103 33 L97 43 L107 45 L97 47 L103 57 L93 55 L90 65 L87 55 L77 57 L83 47 L73 45 L83 43 L77 33 L87 35 Z" 
+          fill="#F4F7FA" opacity="0.8"/>
+  </g>
+</svg>

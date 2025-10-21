@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Color Selector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .new-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(to right, #10b981, #059669);
+            border-radius: 9999px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            padding: 2px 8px;
+            font-size: 10px;
+            animation: pulse-glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(34, 197, 94, 0.5); }
+            100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.8), 0 0 15px rgba(34, 197, 94, 0.4); }
+        }
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .color-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .color-preview {
+            width: 100%;
+            height: 60px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .color-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .color-name {
+            font-weight: 500;
+            font-size: 14px;
+            color: #111827;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тест отображения плашки "Новинка" для цветов</h1>
+        
+        <div class="color-grid">
+            <!-- Обычный цвет -->
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #FF0000;"></div>
+                <div class="color-name-row">
+                    <span class="color-name">Красный</span>
+                </div>
+                <small>Обычный цвет</small>
+            </div>
+            
+            <!-- Новый цвет -->
+            <div class="color-card">
+                <div class="color-preview" style="background-color: #00FF00;"></div>
+                <div class="color-name-row">
+                    <span class="color-name">Зеленый</span>
+                    <span class="new-badge">НОВИНКА</span>
+                </div>
+                <small>Новый цвет</small>
+            </div>
+            
+            <!-- Градиент новинка -->
+            <div class="color-card">
+                <div class="color-preview" style="background: linear-gradient(45deg, #FF6B35 0%, #F7931E 50%, #FFD23F 100%);"></div>
+                <div class="color-name-row">
+                    <span class="color-name">Закат</span>
+                    <span class="new-badge">НОВИНКА</span>
+                </div>
+                <small>Градиентный цвет</small>
+            </div>
+            
+            <!-- Металлик новинка -->
+            <div class="color-card">
+                <div class="color-preview" style="background: linear-gradient(135deg, #C0C0C0 0%, #ffffff80 50%, #C0C0C0 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);"></div>
+                <div class="color-name-row">
+                    <span class="color-name">Хром</span>
+                    <span class="new-badge">НОВИНКА</span>
+                </div>
+                <small>Металлический цвет</small>
+            </div>
+        </div>
+        
+        <p style="margin-top: 20px; color: #6b7280;">
+            Плашка "НОВИНКА" отображается для цветов с полем is_new = true и имеет анимацию свечения.
+        </p>
+    </div>
+</body>
+</html>

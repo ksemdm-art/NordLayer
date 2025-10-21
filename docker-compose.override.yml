@@ -1,0 +1,30 @@
+# Docker Compose override for development
+# This file is automatically loaded by docker-compose and extends docker-compose.yml
+# Use this for local development customizations
+
+services:
+  # Development overrides for backend
+  backend:
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+
+  # Development overrides for frontend  
+  frontend:
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8000
+
+  # Development overrides for telegram bot
+  telegram-bot:
+    environment:
+      - LOG_LEVEL=DEBUG
+      - DEBUG=true
+    # Uncomment to enable auto-restart on code changes
+    # command: python -u main.py --reload
+
+  # Development database with exposed port
+  postgres:
+    environment:
+      - POSTGRES_DB=printing_platform_dev
