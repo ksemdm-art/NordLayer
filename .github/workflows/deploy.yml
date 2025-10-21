@@ -1,9 +1,6 @@
-name: Deploy to Production
+name: Deploy to Production (Advanced)
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
 
 env:

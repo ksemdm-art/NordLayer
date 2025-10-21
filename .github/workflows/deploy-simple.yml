@@ -1,0 +1,75 @@
+name: Deploy to Production (Simple)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+    
+    - name: Add server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Deploy to server
+      run: |
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          # Создаем директорию проекта если не существует
+          sudo mkdir -p /opt/printing-platform
+          sudo chown deploy:deploy /opt/printing-platform
+          
+          cd /opt/printing-platform
+          
+          # Клонируем или обновляем репозиторий
+          if [ -d ".git" ]; then
+            git pull origin main
+          else
+            git clone https://github.com/ksemdm-art/NordLayer.git .
+          fi
+          
+          # Копируем production конфигурацию
+          cp .env.production .env
+          
+          # Обновляем переменные окружения
+          sed -i 's/CHANGE_THIS_TO_SECURE_RANDOM_STRING_64_CHARS_LONG_PLEASE/$(openssl rand -hex 32)/' .env
+          sed -i 's/CHANGE_THIS_TO_SECURE_PASSWORD/$(openssl rand -base64 32)/' .env
+          
+          # Останавливаем старые контейнеры
+          sudo docker-compose -f docker-compose.prod.yml down || true
+          
+          # Собираем и запускаем новые контейнеры
+          sudo docker-compose -f docker-compose.prod.yml up -d --build
+          
+          # Ждем запуска сервисов
+          sleep 30
+          
+          echo "Deployment completed!"
+        EOF
+    
+    - name: Check deployment
+      run: |
+        sleep 60
+        # Проверяем что сервисы запущены
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "sudo docker-compose -f /opt/printing-platform/docker-compose.prod.yml ps"
+    
+    - name: Notify success
+      if: success()
+      run: |
+        echo "✅ Deployment to nordlayer.ru successful!"
+    
+    - name: Notify failure
+      if: failure()
+      run: |
+        echo "❌ Deployment to nordlayer.ru failed!"
