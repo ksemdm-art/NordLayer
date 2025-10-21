@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
+    "build:prod": "vite build",
+    "build:no-typecheck": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest --run",
     "test:e2e": "playwright test",
