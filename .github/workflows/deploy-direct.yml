@@ -1,8 +1,6 @@
-name: Direct Deploy
+name: Direct Deploy (Disabled)
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:

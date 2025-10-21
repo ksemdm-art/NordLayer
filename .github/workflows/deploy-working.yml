@@ -1,0 +1,100 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Test SSH connection
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'"
+    
+    - name: Deploy application
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
+          set -e
+          
+          echo "🚀 Starting deployment..."
+          
+          # Создаем директорию проекта
+          sudo mkdir -p /opt/printing-platform
+          sudo chown deploy:deploy /opt/printing-platform
+          cd /opt/printing-platform
+          
+          # Клонируем или обновляем код
+          if [ -d ".git" ]; then
+            echo "📥 Updating existing repository..."
+            git fetch origin
+            git reset --hard origin/main
+            git pull origin main
+          else
+            echo "📥 Cloning repository..."
+            git clone https://github.com/ksemdm-art/NordLayer.git .
+          fi
+          
+          # Настраиваем окружение
+          echo "⚙️ Setting up environment..."
+          cp .env.production .env
+          
+          # Генерируем безопасные пароли
+          SECRET_KEY=$(openssl rand -hex 32)
+          DB_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+          
+          # Обновляем .env файл
+          sed -i "s/CHANGE_THIS_TO_SECURE_RANDOM_STRING_64_CHARS_LONG_PLEASE/$SECRET_KEY/" .env
+          sed -i "s/CHANGE_THIS_TO_SECURE_PASSWORD/$DB_PASSWORD/" .env
+          
+          echo "🛑 Stopping old containers..."
+          sudo docker-compose -f docker-compose.prod.yml down || true
+          
+          echo "🐳 Building and starting new containers..."
+          sudo docker-compose -f docker-compose.prod.yml up -d --build
+          
+          echo "⏳ Waiting for services to start..."
+          sleep 45
+          
+          echo "📊 Checking container status..."
+          sudo docker-compose -f docker-compose.prod.yml ps
+          
+          echo "✅ Deployment completed successfully!"
+        ENDSSH
+    
+    - name: Verify deployment
+      run: |
+        echo "🔍 Verifying deployment..."
+        sleep 30
+        
+        # Проверяем что контейнеры запущены
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+          "sudo docker-compose -f /opt/printing-platform/docker-compose.prod.yml ps --filter 'status=running' --quiet | wc -l" > running_containers.txt
+        
+        RUNNING=$(cat running_containers.txt)
+        echo "Running containers: $RUNNING"
+        
+        if [ "$RUNNING" -gt "0" ]; then
+          echo "✅ Deployment verification successful!"
+        else
+          echo "❌ Deployment verification failed!"
+          exit 1
+        fi
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        rm -f ~/.ssh/id_rsa
+        rm -f running_containers.txt
