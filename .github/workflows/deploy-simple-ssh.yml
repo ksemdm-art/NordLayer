@@ -25,7 +25,14 @@ jobs:
           sudo mkdir -p /opt/printing-platform
           sudo chown deploy:deploy /opt/printing-platform
         SCRIPT_AFTER: |
+          set -e
+          echo "🚀 Starting deployment script..."
+          
           cd /opt/printing-platform
+          pwd
+          ls -la
+          
+          echo "⚙️ Setting up environment..."
           cp .env.production .env
           
           # Генерируем пароли
@@ -36,10 +43,16 @@ jobs:
           sed -i "s/CHANGE_THIS_TO_SECURE_RANDOM_STRING_64_CHARS_LONG_PLEASE/$SECRET_KEY/" .env
           sed -i "s/CHANGE_THIS_TO_SECURE_PASSWORD/$DB_PASSWORD/" .env
           
-          # Перезапускаем контейнеры
+          echo "🛑 Stopping old containers..."
           sudo docker-compose -f docker-compose.prod.yml down || true
+          
+          echo "🐳 Starting new containers..."
           sudo docker-compose -f docker-compose.prod.yml up -d --build
           
-          # Проверяем статус
-          sleep 30
+          echo "⏳ Waiting for containers to start..."
+          sleep 45
+          
+          echo "📊 Container status:"
           sudo docker-compose -f docker-compose.prod.yml ps
+          
+          echo "✅ Deployment completed!"
