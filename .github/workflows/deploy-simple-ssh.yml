@@ -10,49 +10,53 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
     - name: Deploy via SSH
-      uses: easingthemes/ssh-deploy@main
+      uses: appleboy/ssh-action@v1.0.3
       with:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        REMOTE_HOST: ${{ secrets.SERVER_HOST }}
-        REMOTE_USER: ${{ secrets.SERVER_USER }}
-        SOURCE: "."
-        TARGET: "/opt/printing-platform"
-        SCRIPT_BEFORE: |
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          set -e
+          echo "🚀 Starting deployment..."
+          
+          # Создаем и настраиваем папку проекта
           sudo mkdir -p /opt/printing-platform
           sudo chown deploy:deploy /opt/printing-platform
-        SCRIPT_AFTER: |
-          set -e
-          echo "🚀 Starting deployment script..."
-          
           cd /opt/printing-platform
-          pwd
-          ls -la
+          
+          # Клонируем или обновляем репозиторий
+          if [ -d ".git" ]; then
+            echo "📥 Updating existing repository..."
+            git fetch origin
+            git reset --hard origin/main
+            git pull origin main
+          else
+            echo "📥 Cloning repository..."
+            git clone https://github.com/ksemdm-art/NordLayer.git .
+          fi
           
           echo "⚙️ Setting up environment..."
-          cp .env.production .env
+          cp .env.production.template .env
           
-          # Генерируем пароли
+          # Генерируем безопасные пароли
           SECRET_KEY=$(openssl rand -hex 32)
           DB_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
           
-          # Обновляем .env
+          # Обновляем .env файл
           sed -i "s/CHANGE_THIS_TO_SECURE_RANDOM_STRING_64_CHARS_LONG_PLEASE/$SECRET_KEY/" .env
           sed -i "s/CHANGE_THIS_TO_SECURE_PASSWORD/$DB_PASSWORD/" .env
           
           echo "🛑 Stopping old containers..."
           sudo docker-compose -f docker-compose.prod.yml down || true
           
-          echo "🐳 Starting new containers..."
+          echo "🐳 Building and starting containers..."
           sudo docker-compose -f docker-compose.prod.yml up -d --build
           
-          echo "⏳ Waiting for containers to start..."
+          echo "⏳ Waiting for services to start..."
           sleep 45
           
           echo "📊 Container status:"
           sudo docker-compose -f docker-compose.prod.yml ps
           
-          echo "✅ Deployment completed!"
+          echo "✅ Deployment completed successfully!"
