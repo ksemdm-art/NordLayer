@@ -1,8 +1,6 @@
-name: Simple Deploy
+name: Simple Deploy (Disabled)
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:

@@ -1,121 +1,71 @@
-name: Deploy to Production (Advanced)
+name: Deploy to Production
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    
-    strategy:
-      matrix:
-        service: [backend, frontend, telegram-bot]
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=sha,prefix={{branch}}-
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./${{ matrix.service }}
-        file: ./${{ matrix.service }}/Dockerfile.prod
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          BUILDKIT_INLINE_CACHE=1
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.ref == 'refs/heads/main'
     
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
     
     - name: Setup SSH
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-    
-    - name: Add server to known hosts
       run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
     
     - name: Deploy to server
       run: |
+        # Sync files to server
+        rsync -avz --delete \
+          --exclude '.git' \
+          --exclude 'node_modules' \
+          --exclude '.env' \
+          ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/printing-platform/
+        
+        # Execute deployment commands on server
         ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
           cd /opt/printing-platform
           
-          # Backup current deployment
-          sudo docker-compose -f docker-compose.prod.yml down
-          sudo cp -r . ../printing-platform-backup-$(date +%Y%m%d-%H%M%S)
+          # Setup environment
+          if [ ! -f .env ]; then
+            cp .env.production.template .env
+            
+            # Generate secure passwords
+            SECRET_KEY=$(openssl rand -hex 32)
+            DB_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+            
+            # Update .env file
+            sed -i "s/your_secure_password_here/$DB_PASSWORD/" .env
+            sed -i "s/your_very_secure_secret_key_here_min_32_chars/$SECRET_KEY/" .env
+            sed -i "s/yourdomain.com/nordlayer.ru/g" .env
+            sed -i "s/your_telegram_bot_token_here/8316701600:AAGGhAE_2j7_3jCGJvWcLVIJ1ce247dim8g/" .env
+            sed -i "s/123456789,987654321/692854890/" .env
+          fi
           
-          # Pull latest changes
-          git pull origin main
+          # Deploy with Docker Compose
+          sudo docker-compose -f docker-compose.prod.yml down || true
+          sudo docker-compose -f docker-compose.prod.yml up -d --build
           
-          # Update images
-          sudo docker-compose -f docker-compose.prod.yml pull
-          
-          # Start services
-          sudo docker-compose -f docker-compose.prod.yml up -d
-          
-          # Wait for services to be healthy
+          # Wait and check status
           sleep 30
-          
-          # Run health checks
-          curl -f http://localhost/health || exit 1
-          
-          echo "Deployment completed successfully!"
+          sudo docker-compose -f docker-compose.prod.yml ps
         EOF
     
-    - name: Run smoke tests
+    - name: Verify deployment
       run: |
-        sleep 60  # Wait for services to fully start
-        curl -f https://${{ secrets.DOMAIN_NAME }}/health
-        curl -f https://${{ secrets.DOMAIN_NAME }}/api/health
-    
-    - name: Notify deployment success
-      if: success()
-      run: |
-        echo "✅ Deployment to production successful!"
-        # Здесь можно добавить уведомления в Slack/Telegram
-    
-    - name: Notify deployment failure
-      if: failure()
-      run: |
-        echo "❌ Deployment to production failed!"
-        # Здесь можно добавить уведомления об ошибке
+        sleep 60
+        # Check if containers are running
+        RUNNING=$(ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "sudo docker-compose -f /opt/printing-platform/docker-compose.prod.yml ps -q | wc -l")
+        if [ "$RUNNING" -gt "0" ]; then
+          echo "✅ Deployment successful! $RUNNING containers running"
+        else
+          echo "❌ Deployment failed! No containers running"
+          exit 1
+        fi
