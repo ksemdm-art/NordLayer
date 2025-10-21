@@ -1,0 +1,56 @@
+name: Direct Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Создаем директорию проекта
+          sudo mkdir -p /opt/printing-platform
+          sudo chown deploy:deploy /opt/printing-platform
+          cd /opt/printing-platform
+          
+          # Клонируем или обновляем код
+          if [ -d ".git" ]; then
+            git pull origin main
+          else
+            git clone https://github.com/ksemdm-art/NordLayer.git .
+          fi
+          
+          # Настраиваем окружение
+          cp .env.production .env
+          
+          # Генерируем безопасные пароли
+          SECRET_KEY=$(openssl rand -hex 32)
+          DB_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+          
+          # Обновляем .env файл
+          sed -i "s/CHANGE_THIS_TO_SECURE_RANDOM_STRING_64_CHARS_LONG_PLEASE/$SECRET_KEY/" .env
+          sed -i "s/CHANGE_THIS_TO_SECURE_PASSWORD/$DB_PASSWORD/" .env
+          
+          # Останавливаем старые контейнеры
+          sudo docker-compose -f docker-compose.prod.yml down || true
+          
+          # Запускаем новые контейнеры
+          sudo docker-compose -f docker-compose.prod.yml up -d --build
+          
+          # Проверяем статус
+          sleep 30
+          sudo docker-compose -f docker-compose.prod.yml ps
+          
+          echo "✅ Deployment completed successfully!"

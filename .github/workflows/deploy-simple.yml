@@ -1,8 +1,6 @@
-name: Deploy to Production (Simple)
+name: Deploy to Production (Simple - Disabled)
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
