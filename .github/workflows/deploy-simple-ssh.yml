@@ -1,0 +1,45 @@
+name: Simple Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Deploy via SSH
+      uses: easingthemes/ssh-deploy@main
+      with:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        REMOTE_HOST: ${{ secrets.SERVER_HOST }}
+        REMOTE_USER: ${{ secrets.SERVER_USER }}
+        SOURCE: "."
+        TARGET: "/opt/printing-platform"
+        SCRIPT_BEFORE: |
+          sudo mkdir -p /opt/printing-platform
+          sudo chown deploy:deploy /opt/printing-platform
+        SCRIPT_AFTER: |
+          cd /opt/printing-platform
+          cp .env.production .env
+          
+          # Генерируем пароли
+          SECRET_KEY=$(openssl rand -hex 32)
+          DB_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+          
+          # Обновляем .env
+          sed -i "s/CHANGE_THIS_TO_SECURE_RANDOM_STRING_64_CHARS_LONG_PLEASE/$SECRET_KEY/" .env
+          sed -i "s/CHANGE_THIS_TO_SECURE_PASSWORD/$DB_PASSWORD/" .env
+          
+          # Перезапускаем контейнеры
+          sudo docker-compose -f docker-compose.prod.yml down || true
+          sudo docker-compose -f docker-compose.prod.yml up -d --build
+          
+          # Проверяем статус
+          sleep 30
+          sudo docker-compose -f docker-compose.prod.yml ps
