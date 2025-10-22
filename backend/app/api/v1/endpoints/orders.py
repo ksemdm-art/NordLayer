@@ -151,8 +151,8 @@ async def update_order(
     order_id: int,
     order_update: OrderUpdate,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
-    # current_user: User = Depends(get_current_admin_user)  # Temporarily disabled for testing
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ):
     """
     Обновить заказ (только для администраторов)

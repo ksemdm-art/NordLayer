@@ -61,14 +61,23 @@ def read_colors(
     skip: int = 0,
     limit: int = 100,
     color_type: ColorType = Query(None, description="Filter by color type"),
+    include_inactive: bool = Query(False, description="Include inactive colors"),
 ) -> Any:
     """
     Retrieve colors with optional filtering by type.
     """
     if color_type:
-        colors = crud.color.get_colors_by_type(db, color_type=color_type)
+        if include_inactive:
+            # Get all colors of specific type (including inactive)
+            colors = db.query(crud.color.model).filter(crud.color.model.type == color_type).order_by(crud.color.model.sort_order, crud.color.model.name).all()
+        else:
+            colors = crud.color.get_colors_by_type(db, color_type=color_type)
     else:
-        colors = crud.color.get_active_colors(db)
+        if include_inactive:
+            # Get all colors (including inactive) for admin
+            colors = crud.color.get_all_colors_for_admin(db, skip=skip, limit=limit)
+        else:
+            colors = crud.color.get_active_colors(db)
     
     # Convert to dictionaries for serialization with enhanced fields
     colors_data = [serialize_color(color) for color in colors]

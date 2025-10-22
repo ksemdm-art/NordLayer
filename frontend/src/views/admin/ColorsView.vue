@@ -1,5 +1,34 @@
 <template>
   <AdminLayout>
+    <!-- Notification -->
+    <div 
+      v-if="notification.show"
+      :class="[
+        'fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg transition-all duration-300',
+        notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+      ]"
+    >
+      <div class="flex items-center">
+        <svg 
+          v-if="notification.type === 'success'"
+          class="w-5 h-5 mr-2" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <svg 
+          v-else
+          class="w-5 h-5 mr-2" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        {{ notification.message }}
+      </div>
+    </div>
+    
     <div class="colors-admin">
       <div class="header">
         <h1>Управление цветами</h1>
@@ -184,7 +213,11 @@ const { getColorStyle } = useColors()
 const colors = ref<Color[]>([])
 const loading = ref(false)
 const selectedType = ref('')
-
+const notification = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
+  show: false,
+  message: '',
+  type: 'success'
+})
 
 // Modal states
 const showCreateModal = ref(false)
@@ -194,10 +227,20 @@ const editingColor = ref<Color | null>(null)
 const loadColors = async () => {
   loading.value = true
   try {
+    console.log('📥 Loading colors from API...')
     const colorType = selectedType.value as ColorType | undefined
-    colors.value = await colorsApi.getColors(colorType)
+    // Добавляем timestamp для предотвращения кеширования браузером
+    const timestamp = Date.now()
+    colors.value = await colorsApi.getColors(colorType, true) // включаем неактивные цвета для админки
+    console.log('✅ Loaded', colors.value.length, 'colors')
+    
+    // Логируем статус первых нескольких цветов для отладки
+    colors.value.slice(0, 5).forEach(color => {
+      console.log(`Color ${color.id} (${color.name}): ${color.is_active ? 'active' : 'inactive'}, new: ${color.is_new}`)
+    })
   } catch (error) {
     console.error('Error loading colors:', error)
+    colors.value = []
   } finally {
     loading.value = false
   }
@@ -205,25 +248,39 @@ const loadColors = async () => {
 
 const toggleActiveStatus = async (color: Color) => {
   try {
+    console.log('🔄 Toggling active status for color:', color.name, 'ID:', color.id, 'Current:', color.is_active)
     const updatedColor = await colorsApi.toggleActiveStatus(color.id)
-    const index = colors.value.findIndex(c => c.id === color.id)
-    if (index !== -1) {
-      colors.value[index] = updatedColor
-    }
+    console.log('✅ Color active status updated successfully. New status:', updatedColor.is_active)
+    
+    // Перезагружаем список цветов для обеспечения синхронизации
+    await loadColors()
+    
+    showNotification(
+      `Цвет "${color.name}" ${updatedColor.is_active ? 'активирован' : 'деактивирован'}`, 
+      'success'
+    )
   } catch (error) {
     console.error('Error toggling active status:', error)
+    showNotification('Ошибка при изменении статуса цвета', 'error')
   }
 }
 
 const toggleNewStatus = async (color: Color) => {
   try {
+    console.log('🔄 Toggling new status for color:', color.name, 'ID:', color.id, 'Current:', color.is_new)
     const updatedColor = await colorsApi.toggleNewStatus(color.id)
-    const index = colors.value.findIndex(c => c.id === color.id)
-    if (index !== -1) {
-      colors.value[index] = updatedColor
-    }
+    console.log('✅ Color new status updated successfully. New status:', updatedColor.is_new)
+    
+    // Перезагружаем список цветов для обеспечения синхронизации
+    await loadColors()
+    
+    showNotification(
+      `Цвет "${color.name}" ${updatedColor.is_new ? 'отмечен как новинка' : 'убран из новинок'}`, 
+      'success'
+    )
   } catch (error) {
     console.error('Error toggling new status:', error)
+    showNotification('Ошибка при изменении статуса новинки', 'error')
   }
 }
 
@@ -231,12 +288,20 @@ const toggleNewStatus = async (color: Color) => {
 
 const updateColor = async (color: Color) => {
   try {
+    console.log('🔄 Updating color:', color.name, 'ID:', color.id)
     await colorsApi.updateColor(color.id, {
       sort_order: color.sort_order,
       price_modifier: color.price_modifier
     })
+    console.log('✅ Color updated successfully')
+    
+    // Перезагружаем список цветов для обеспечения синхронизации
+    await loadColors()
+    
+    showNotification(`Цвет "${color.name}" обновлен`, 'success')
   } catch (error) {
     console.error('Error updating color:', error)
+    showNotification('Ошибка при обновлении цвета', 'error')
   }
 }
 
@@ -248,10 +313,17 @@ const editColor = (color: Color) => {
 const deleteColor = async (color: Color) => {
   if (confirm(`Вы уверены, что хотите удалить цвет "${color.name}"?`)) {
     try {
+      console.log('🗑️ Deleting color:', color.name, 'ID:', color.id)
       await colorsApi.deleteColor(color.id)
-      colors.value = colors.value.filter(c => c.id !== color.id)
+      console.log('✅ Color deleted successfully')
+      
+      // Перезагружаем список цветов для обеспечения синхронизации
+      await loadColors()
+      
+      showNotification(`Цвет "${color.name}" удален`, 'success')
     } catch (error) {
       console.error('Error deleting color:', error)
+      showNotification('Ошибка при удалении цвета', 'error')
     }
   }
 }
@@ -266,19 +338,27 @@ const handleSave = async (colorData: Partial<Color>) => {
   try {
     if (showEditModal.value && editingColor.value) {
       // Update existing color
+      console.log('🔄 Updating existing color:', editingColor.value.name)
       const updatedColor = await colorsApi.updateColor(editingColor.value.id, colorData)
-      const index = colors.value.findIndex(c => c.id === editingColor.value!.id)
-      if (index !== -1) {
-        colors.value[index] = updatedColor
-      }
+      console.log('✅ Color updated successfully')
+      
+      showNotification(`Цвет "${updatedColor.name}" обновлен`, 'success')
     } else {
       // Create new color
+      console.log('🔄 Creating new color:', colorData.name)
       const newColor = await colorsApi.createColor(colorData)
-      colors.value.unshift(newColor)
+      console.log('✅ Color created successfully')
+      
+      showNotification(`Цвет "${newColor.name}" создан`, 'success')
     }
+    
     closeModal()
+    
+    // Перезагружаем список цветов для обеспечения синхронизации
+    await loadColors()
   } catch (error) {
     console.error('Error saving color:', error)
+    showNotification('Ошибка при сохранении цвета', 'error')
   }
 }
 
@@ -304,6 +384,13 @@ const getColorTooltip = (color: Color): string => {
   }
   
   return tooltip
+}
+
+const showNotification = (message: string, type: 'success' | 'error') => {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 3000)
 }
 
 onMounted(() => {

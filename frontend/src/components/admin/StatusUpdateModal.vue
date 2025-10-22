@@ -51,7 +51,15 @@ const updateStatus = async () => {
     const response = await api.put(`/orders/${props.order.id}`, {
       status: selectedStatus.value
     })
-    emit('updated', response.data.data)
+    
+    // Проверяем, что API вернул обновленные данные
+    if (response.data && response.data.data) {
+      emit('updated', response.data.data)
+    } else {
+      // Если API не вернул данные, создаем обновленный объект
+      const updatedOrder = { ...props.order, status: selectedStatus.value }
+      emit('updated', updatedOrder)
+    }
     emit('close')
   } catch (error) {
     console.error('Error updating order status:', error)

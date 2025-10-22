@@ -1,5 +1,34 @@
 <template>
   <AdminLayout>
+    <!-- Notification -->
+    <div 
+      v-if="notification.show"
+      :class="[
+        'fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg transition-all duration-300',
+        notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+      ]"
+    >
+      <div class="flex items-center">
+        <svg 
+          v-if="notification.type === 'success'"
+          class="w-5 h-5 mr-2" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <svg 
+          v-else
+          class="w-5 h-5 mr-2" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        {{ notification.message }}
+      </div>
+    </div>
+    
     <div class="reviews-management">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
@@ -341,6 +370,11 @@ const loading = ref(false)
 const currentPage = ref(1)
 const limit = ref(20)
 const totalReviews = ref(0)
+const notification = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
+  show: false,
+  message: '',
+  type: 'success'
+})
 
 const stats = reactive({
   total: 0,
@@ -373,6 +407,7 @@ const loadReviews = async () => {
   loading.value = true
   
   try {
+    console.log('📥 Loading reviews from API...')
     const params = new URLSearchParams({
       skip: ((currentPage.value - 1) * limit.value).toString(),
       limit: limit.value.toString()
@@ -390,26 +425,41 @@ const loadReviews = async () => {
       params.append('rating', filters.rating)
     }
     
+    // Добавляем timestamp для предотвращения кеширования
+    params.append('_t', Date.now().toString())
+    
     let endpoint = '/api/v1/reviews/admin/all'
     if (filters.search) {
       endpoint = '/api/v1/reviews/admin/search'
       params.append('q', filters.search)
     }
     
+    console.log('🔄 Fetching reviews from:', `${endpoint}?${params}`)
     const response = await fetch(`${endpoint}?${params}`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
     })
     
+    console.log('📥 Reviews API response status:', response.status)
+    
     if (response.ok) {
       const result = await response.json()
+      console.log('✅ Reviews API response:', result)
       if (result.success) {
         reviews.value = result.data
+        console.log('✅ Loaded', result.data.length, 'reviews')
         // Для простоты используем длину массива как общее количество
         // В реальном API должно быть поле total
         totalReviews.value = result.data.length
+        
+        // Логируем статус первых нескольких отзывов для отладки
+        reviews.value.slice(0, 5).forEach(review => {
+          console.log(`Review ${review.id}: approved=${review.is_approved}, featured=${review.is_featured}`)
+        })
       }
+    } else {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
   } catch (error) {
     console.error('Error loading reviews:', error)
@@ -443,6 +493,7 @@ const loadStats = async () => {
 
 const approveReview = async (reviewId: number) => {
   try {
+    console.log('🔄 Approving review ID:', reviewId)
     const response = await fetch(`/api/v1/reviews/admin/${reviewId}/approve`, {
       method: 'PUT',
       headers: {
@@ -450,20 +501,28 @@ const approveReview = async (reviewId: number) => {
       }
     })
     
+    console.log('📥 Approve review response status:', response.status)
+    
     if (response.ok) {
+      console.log('✅ Review approved successfully')
       await loadReviews()
       await loadStats()
       if (selectedReview.value?.id === reviewId) {
         selectedReview.value.is_approved = true
       }
+      showNotification('Отзыв одобрен', 'success')
+    } else {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
   } catch (error) {
     console.error('Error approving review:', error)
+    showNotification('Ошибка при одобрении отзыва', 'error')
   }
 }
 
 const toggleFeatured = async (reviewId: number, featured: boolean) => {
   try {
+    console.log('🔄 Toggling featured status for review ID:', reviewId, 'to:', featured)
     const response = await fetch(`/api/v1/reviews/admin/${reviewId}/feature?featured=${featured}`, {
       method: 'PUT',
       headers: {
@@ -471,15 +530,25 @@ const toggleFeatured = async (reviewId: number, featured: boolean) => {
       }
     })
     
+    console.log('📥 Toggle featured response status:', response.status)
+    
     if (response.ok) {
+      console.log('✅ Review featured status updated successfully')
       await loadReviews()
       await loadStats()
       if (selectedReview.value?.id === reviewId) {
         selectedReview.value.is_featured = featured
       }
+      showNotification(
+        featured ? 'Отзыв добавлен в рекомендуемые' : 'Отзыв убран из рекомендуемых', 
+        'success'
+      )
+    } else {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
   } catch (error) {
     console.error('Error toggling featured status:', error)
+    showNotification('Ошибка при изменении статуса рекомендуемого отзыва', 'error')
   }
 }
 
@@ -502,9 +571,12 @@ const deleteReview = async (reviewId: number) => {
       if (selectedReview.value?.id === reviewId) {
         selectedReview.value = null
       }
+    } else {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
   } catch (error) {
     console.error('Error deleting review:', error)
+    alert('Ошибка при удалении отзыва. Проверьте консоль для деталей.')
   }
 }
 
@@ -553,6 +625,13 @@ const getStatusText = (review: Review) => {
   } else {
     return 'На модерации'
   }
+}
+
+const showNotification = (message: string, type: 'success' | 'error') => {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 3000)
 }
 
 const formatDate = (dateString: string) => {

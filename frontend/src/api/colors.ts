@@ -68,11 +68,16 @@ export const colorsApi = {
         params.append('include_inactive', 'true')
       }
       
+      // Добавляем timestamp для предотвращения кеширования
+      params.append('_t', Date.now().toString())
+      
       if (params.toString()) {
         url += `?${params.toString()}`
       }
       
+      console.log('🔄 Fetching colors from:', url)
       const response = await api.get<ColorsResponse>(url)
+      console.log('✅ Colors API response:', response.data)
       return response.data.data || []
     } catch (error) {
       console.error('Error fetching colors:', error)
@@ -159,12 +164,16 @@ export const colorsApi = {
   },
 
   async toggleActiveStatus(id: number): Promise<Color> {
+    console.log('🔄 Toggling active status for color ID:', id)
     const response = await api.patch<{ success: boolean; data: Color }>(`/colors/${id}/toggle-active`)
+    console.log('✅ Toggle active response:', response.data)
     return response.data.data
   },
 
   async toggleNewStatus(id: number): Promise<Color> {
+    console.log('🔄 Toggling new status for color ID:', id)
     const response = await api.patch<{ success: boolean; data: Color }>(`/colors/${id}/toggle-new`)
+    console.log('✅ Toggle new response:', response.data)
     return response.data.data
   }
 }

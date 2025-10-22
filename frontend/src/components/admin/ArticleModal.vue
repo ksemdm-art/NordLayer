@@ -294,22 +294,32 @@ const saveArticle = async () => {
   error.value = ''
   
   try {
+    console.log('🔄 Saving article:', form.title, 'isEdit:', props.isEdit)
+    console.log('📤 Article data:', form)
+    
     let response
     
     if (props.isEdit && props.article?.id) {
+      console.log('🔄 Updating existing article ID:', props.article.id)
       response = await api.put(`/articles/${props.article.id}`, form)
     } else {
+      console.log('🔄 Creating new article')
       response = await api.post('/articles', form)
     }
+    
+    console.log('✅ Article save response:', response.data)
     
     // Преобразуем ответ сервера в тип Article
     const savedArticle: Article = {
       ...response.data.data,
       is_published: response.data.data.status === 'published'
     }
+    
+    console.log('✅ Emitting saved article:', savedArticle)
     emit('saved', savedArticle)
   } catch (err: any) {
-    console.error('Error saving article:', err)
+    console.error('❌ Error saving article:', err)
+    console.error('❌ Error response:', err.response?.data)
     error.value = err.response?.data?.message || 'Произошла ошибка при сохранении статьи'
   } finally {
     loading.value = false

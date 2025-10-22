@@ -1,5 +1,34 @@
 <template>
   <AdminLayout>
+    <!-- Notification -->
+    <div 
+      v-if="notification.show"
+      :class="[
+        'fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg transition-all duration-300',
+        notification.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+      ]"
+    >
+      <div class="flex items-center">
+        <svg 
+          v-if="notification.type === 'success'"
+          class="w-5 h-5 mr-2" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>
+        <svg 
+          v-else
+          class="w-5 h-5 mr-2" 
+          fill="currentColor" 
+          viewBox="0 0 20 20"
+        >
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        {{ notification.message }}
+      </div>
+    </div>
+    
     <div class="space-y-6">
       <!-- Page header -->
       <div class="sm:flex sm:items-center">
@@ -375,6 +404,11 @@ const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedArticle = ref<ArticleWithStatus | null>(null)
 const articleToDelete = ref<ArticleWithStatus | null>(null)
+const notification = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
+  show: false,
+  message: '',
+  type: 'success'
+})
 
 // Filters
 const filters = ref({
@@ -482,6 +516,13 @@ const truncateText = (text: string, length: number) => {
   return text.substring(0, length) + '...'
 }
 
+const showNotification = (message: string, type: 'success' | 'error') => {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 3000)
+}
+
 const resetFilters = () => {
   filters.value = {
     search: '',
@@ -494,8 +535,18 @@ const resetFilters = () => {
 const loadArticles = async () => {
   loading.value = true
   try {
-    const response = await api.get('/articles')
+    console.log('📥 Loading articles from API...')
+    // Добавляем timestamp для предотвращения кеширования браузером
+    const timestamp = Date.now()
+    const response = await api.get(`/articles?_t=${timestamp}`)
+    console.log('✅ Articles API response:', response.data)
     articles.value = response.data.data || []
+    console.log('✅ Loaded', articles.value.length, 'articles')
+    
+    // Логируем статус первых нескольких статей для отладки
+    articles.value.slice(0, 5).forEach(article => {
+      console.log(`Article ${article.id} (${article.title}): ${article.status}`)
+    })
   } catch (error) {
     console.error('Error loading articles:', error)
     articles.value = []
@@ -518,12 +569,21 @@ const confirmDelete = async () => {
   if (!articleToDelete.value) return
   
   try {
+    console.log('🗑️ Deleting article:', articleToDelete.value.title, 'ID:', articleToDelete.value.id)
     await api.delete(`/articles/${articleToDelete.value.id}`)
+    console.log('✅ Article deleted successfully')
+    
     articles.value = articles.value.filter(a => a.id !== articleToDelete.value!.id)
     showDeleteModal.value = false
     articleToDelete.value = null
+    
+    // Перезагружаем список статей для обеспечения синхронизации
+    await loadArticles()
+    
+    showNotification('Статья удалена', 'success')
   } catch (error) {
     console.error('Error deleting article:', error)
+    showNotification('Ошибка при удалении статьи', 'error')
   }
 }
 
@@ -533,7 +593,9 @@ const closeModals = () => {
   selectedArticle.value = null
 }
 
-const handleArticleSaved = (article: Article) => {
+const handleArticleSaved = async (article: Article) => {
+  console.log('🔄 Handling article save:', article.id, article.title)
+  
   const articleWithStatus: ArticleWithStatus = {
     ...article,
     status: article.is_published ? 'published' : 'draft',
@@ -541,14 +603,23 @@ const handleArticleSaved = (article: Article) => {
   }
   
   if (showEditModal.value) {
+    console.log('✅ Updating existing article in list')
     const index = articles.value.findIndex(a => a.id === article.id)
     if (index !== -1) {
       articles.value[index] = articleWithStatus
     }
+    showNotification(`Статья "${article.title}" обновлена`, 'success')
   } else {
+    console.log('✅ Adding new article to list')
     articles.value.unshift(articleWithStatus)
+    showNotification(`Статья "${article.title}" создана`, 'success')
   }
+  
   closeModals()
+  
+  // Перезагружаем список статей для обеспечения синхронизации
+  console.log('🔄 Reloading articles from server...')
+  await loadArticles()
 }
 
 // Reset pagination when filters change

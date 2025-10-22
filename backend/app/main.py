@@ -98,7 +98,7 @@ async def api_error_handler(request: Request, exc: APIError):
     # Record error metrics
     alert_manager.record_metric('http_requests', {
         'status_code': exc.status_code,
-        'timestamp': request.state.get('start_time')
+        'timestamp': getattr(request.state, 'start_time', None)
     })
     
     return JSONResponse(
