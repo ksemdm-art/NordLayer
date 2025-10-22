@@ -1,5 +1,4 @@
-import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onUnmounted } from 'vue'
 
 interface SEOData {
   title?: string
@@ -17,7 +16,6 @@ interface SEOData {
 }
 
 export function useSEO() {
-  const route = useRoute()
   const originalTitle = ref('')
   const addedMetaTags = ref<HTMLMetaElement[]>([])
 

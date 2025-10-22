@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { colorsApi, type Color, ColorType } from '@/api/colors'
 import { useColors } from '@/composables/useColors'
 
@@ -87,13 +87,15 @@ const loading = ref(false)
 
 const selectedColorId = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value: number | null) => emit('update:modelValue', value)
 })
 
 const loadNewColors = async () => {
   loading.value = true
   try {
-    newColors.value = await colorsApi.getNewColors(props.limit)
+    newColors.value = await colorsApi.getColors(ColorType.SOLID, false)
+    // Фильтруем только новые цвета (можно добавить поле is_new в API)
+    newColors.value = newColors.value.slice(0, props.limit)
   } catch (error) {
     console.error('Error loading new colors:', error)
   } finally {

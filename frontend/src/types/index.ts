@@ -22,7 +22,7 @@ export interface Project {
   created_at: string
   updated_at: string
   is_featured: boolean
-  project_metadata?: Record<string, any>
+  project_metadata?: Record<string, string | number | boolean>
   
   // New pricing and duration fields
   estimated_price?: number
@@ -69,7 +69,7 @@ export interface Order {
   total_price?: number
   source: string
   notes?: string
-  specifications?: Record<string, any>
+  specifications?: Record<string, string | number | boolean | string[] | number[]>
   
   // Извлеченные из specifications для удобства
   color?: string
@@ -113,6 +113,8 @@ export interface Article {
   is_published: boolean
   tags?: string[]
   reading_time?: number
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Service {
@@ -123,6 +125,31 @@ export interface Service {
   category?: string
   icon?: string // Icon identifier string
   features?: string[] // List of service features
+  base_price?: number // Base price for the service
+  price_factors?: {
+    material?: number
+    quality?: number
+    urgency?: number
+  }
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Content {
+  id: number
+  key: string
+  value: string
+  description?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface User {
+  id: number
+  email: string
+  name?: string
+  is_active: boolean
+  is_admin: boolean
   created_at?: string
   updated_at?: string
 }

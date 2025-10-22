@@ -1,4 +1,4 @@
-import { ref, reactive, readonly } from 'vue'
+import { ref, readonly } from 'vue'
 
 export interface Notification {
   id: string

@@ -218,6 +218,7 @@ const retry = () => {
   loadModel()
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const toggleGrid = () => {
   showGridState.value = !showGridState.value
   if (viewer) {

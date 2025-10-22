@@ -335,10 +335,10 @@
     <!-- Create/Edit User Modal -->
     <UserModal
       v-if="showCreateModal || showEditModal"
-      :user="selectedUser"
+      :user="selectedUserForModal as any"
       :is-edit="showEditModal"
       @close="closeModals"
-      @saved="handleUserSaved"
+      @saved="handleUserSaved as any"
     />
   </AdminLayout>
 </template>
@@ -349,24 +349,34 @@ import AdminLayout from '@/components/admin/AdminLayout.vue'
 import UserModal from '@/components/admin/UserModal.vue'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
+import type { User } from '@/types'
 
-interface User {
-  id: number
-  email: string
+interface UserWithExtras extends User {
   full_name?: string
-  role: string
-  is_active: boolean
+  role?: string
   last_login?: string
-  created_at: string
-  updated_at: string
 }
 
 const authStore = useAuthStore()
-const users = ref<User[]>([])
+const users = ref<UserWithExtras[]>([])
 const loading = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
-const selectedUser = ref<User | null>(null)
+const selectedUser = ref<UserWithExtras | null>(null)
+
+// Computed для преобразования UserWithExtras в User для модального окна
+const selectedUserForModal = computed(() => {
+  if (!selectedUser.value) return null
+  return {
+    id: selectedUser.value.id,
+    email: selectedUser.value.email,
+    name: selectedUser.value.full_name,
+    is_active: selectedUser.value.is_active,
+    is_admin: selectedUser.value.role === 'admin',
+    created_at: selectedUser.value.created_at,
+    updated_at: selectedUser.value.updated_at
+  } as User
+})
 
 // Get current user ID to prevent self-deactivation
 const currentUserId = computed(() => authStore.user?.id)
@@ -397,7 +407,7 @@ const stats = computed(() => {
   users.value.forEach(user => {
     if (user.is_active) userStats.active++
     if (user.role === 'admin') userStats.admins++
-    if (new Date(user.created_at) >= thirtyDaysAgo) userStats.recent++
+    if (user.created_at && new Date(user.created_at) >= thirtyDaysAgo) userStats.recent++
   })
   
   return userStats
@@ -455,7 +465,8 @@ const getInitials = (name: string) => {
     .substring(0, 2)
 }
 
-const getRoleClass = (role: string) => {
+const getRoleClass = (role?: string) => {
+  if (!role) return 'bg-gray-100 text-gray-800'
   const classes = {
     'admin': 'bg-purple-100 text-purple-800',
     'user': 'bg-blue-100 text-blue-800'
@@ -463,7 +474,8 @@ const getRoleClass = (role: string) => {
   return classes[role as keyof typeof classes] || 'bg-gray-100 text-gray-800'
 }
 
-const getRoleText = (role: string) => {
+const getRoleText = (role?: string) => {
+  if (!role) return 'Не указано'
   const texts = {
     'admin': 'Администратор',
     'user': 'Пользователь'
@@ -477,7 +489,8 @@ const getStatusClass = (isActive: boolean) => {
     : 'bg-red-100 text-red-800'
 }
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string) => {
+  if (!dateString) return 'Не указано'
   return new Date(dateString).toLocaleDateString('ru-RU')
 }
 
@@ -503,7 +516,7 @@ const loadUsers = async () => {
   }
 }
 
-const editUser = (user: User) => {
+const editUser = (user: UserWithExtras) => {
   selectedUser.value = user
   showEditModal.value = true
 }

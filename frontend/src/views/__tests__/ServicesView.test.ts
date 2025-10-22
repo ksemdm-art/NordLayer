@@ -44,7 +44,7 @@ vi.mock('@/design-system/components', () => ({
 }))
 
 describe('ServicesView', () => {
-  let wrapper: any
+  let wrapper: unknown
 
   beforeEach(async () => {
     await router.push('/services')
@@ -127,7 +127,7 @@ describe('ServicesView', () => {
   it('disables order button for inactive services', () => {
     // All services in mock data are active, so we need to modify the test
     // or check the disabled state logic
-    const orderButtons = wrapper.findAll('button').filter((button: any) => 
+    const orderButtons = wrapper.findAll('button').filter((button: unknown) => 
       button.text().includes('Заказать') || button.text().includes('Недоступно')
     )
     expect(orderButtons.length).toBeGreaterThan(0)
@@ -148,7 +148,7 @@ describe('ServicesView', () => {
 
   it('toggles FAQ answers when clicked', async () => {
     const faqButtons = wrapper.findAll('button')
-    const faqButton = faqButtons.find((button: any) => 
+    const faqButton = faqButtons.find((button: unknown) => 
       button.text().includes('Какие форматы файлов')
     )
     

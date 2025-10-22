@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { CheckIcon } from '@heroicons/vue/24/solid'
 import ServiceSelectionStep from './steps/ServiceSelectionStep.vue'
@@ -155,7 +155,7 @@ const formData = ref<OrderFormData>({
     quality: '',
     infill: 20,
     color: '',
-    selectedColor: null,
+    selectedColor: null as any,
     isMultiColor: false,
     multiColors: [],
     quantity: 1,
@@ -168,15 +168,7 @@ const formData = ref<OrderFormData>({
 
 const errors = ref<Record<string, string>>({})
 
-const currentStepComponent = computed(() => steps[currentStep.value].component)
-
-
-
-const selectedColorName = computed(() => {
-  if (!formData.value.specifications.selectedColor) return null
-  // This will be handled by the FilesColorDetailsStep component
-  return 'Выбран'
-})
+// Removed unused computed properties
 
 const getStepClasses = (index: number) => {
   const baseClasses = 'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300'
@@ -237,20 +229,7 @@ const validateCurrentStep = (): boolean => {
   return true
 }
 
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-const onEnter = (el: Element) => {
-  // Animation on enter
-  el.classList.add('animate-fade-in')
-}
-
-const onLeave = (el: Element) => {
-  // Animation on leave
-  el.classList.add('animate-fade-out')
-}
+// Removed unused functions
 
 // Watch for services changes to update pricing
 watch(() => formData.value.services, () => {
@@ -290,12 +269,7 @@ const calculatePrice = () => {
 }
 
 // Format price for display
-const formatPrice = (price: number) => {
-  if (typeof price !== 'number' || isNaN(price)) {
-    return '0'
-  }
-  return new Intl.NumberFormat('ru-RU').format(Math.round(price))
-}
+// Removed unused formatPrice function
 
 // Load initial data on component mount
 onMounted(() => {

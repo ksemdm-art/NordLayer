@@ -98,19 +98,19 @@
 
 
                   <!-- Список всех услуг из specifications -->
-                  <div v-if="order?.specifications?.services?.length" class="pt-3 border-t border-gray-200">
+                  <div v-if="order && Array.isArray(order.specifications?.services) && (order.specifications as any).services.length > 0" class="pt-3 border-t border-gray-200">
                     <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Все выбранные услуги</label>
                     <div class="space-y-2">
                       <div
-                        v-for="(service, index) in order.specifications.services"
+                        v-for="(service, index) in (order && Array.isArray(order.specifications?.services) ? (order.specifications as any).services : [])"
                         :key="index"
                         class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div class="flex-1">
-                          <p class="text-sm font-medium text-gray-900">{{ service.name || service.service_name || `Услуга ${index + 1}` }}</p>
+                          <p class="text-sm font-medium text-gray-900">{{ (service as any)?.name || (service as any)?.service_name || `Услуга ${index + 1}` }}</p>
                           <p class="text-xs text-gray-500">
-                            ID: {{ service.id || service.service_id }}
-                            <span v-if="service.description" class="block mt-1">{{ service.description }}</span>
+                            ID: {{ (service as any)?.id || (service as any)?.service_id }}
+                            <span v-if="(service as any)?.description" class="block mt-1">{{ (service as any)?.description }}</span>
                           </p>
                         </div>
                         <div class="text-right">
@@ -118,7 +118,7 @@
                             {{ formatPrice(getServicePriceById(service)) }}₽
                           </p>
 
-                          <p class="text-xs text-gray-500" v-if="service.price_factors && Object.keys(service.price_factors).length > 0">
+                          <p class="text-xs text-gray-500" v-if="(service as any)?.price_factors && Object.keys((service as any).price_factors).length > 0">
                             С учетом факторов
                           </p>
                         </div>
@@ -127,17 +127,17 @@
                   </div>
 
                   <!-- Альтернативные способы отображения услуг -->
-                  <div v-else-if="order?.specifications?.selectedServices?.length" class="pt-3 border-t border-gray-200">
+                  <div v-else-if="order && Array.isArray(order.specifications?.selectedServices) && (order.specifications as any).selectedServices.length > 0" class="pt-3 border-t border-gray-200">
                     <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Выбранные услуги</label>
                     <div class="space-y-2">
                       <div
-                        v-for="(service, index) in order.specifications.selectedServices"
+                        v-for="(service, index) in (order && Array.isArray(order.specifications?.selectedServices) ? (order.specifications as any).selectedServices : [])"
                         :key="index"
                         class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div class="flex-1">
-                          <p class="text-sm font-medium text-gray-900">{{ service.name || `Услуга ${index + 1}` }}</p>
-                          <p class="text-xs text-gray-500">ID: {{ service.id }}</p>
+                          <p class="text-sm font-medium text-gray-900">{{ (service as any)?.name || `Услуга ${index + 1}` }}</p>
+                          <p class="text-xs text-gray-500">ID: {{ (service as any)?.id }}</p>
                         </div>
                         <div class="text-right">
                           <p class="text-sm font-medium text-gray-900">{{ formatPrice(getServicePriceById(service)) }}₽</p>
@@ -147,19 +147,19 @@
                   </div>
 
                   <!-- Проверяем другие возможные поля для услуг -->
-                  <div v-else-if="order?.specifications?.servicesList?.length || order?.specifications?.orderServices?.length || order?.specifications?.additionalServices?.length" class="pt-3 border-t border-gray-200">
+                  <div v-else-if="order && ((Array.isArray(order.specifications?.servicesList) && (order.specifications as any).servicesList.length > 0) || (Array.isArray(order.specifications?.orderServices) && (order.specifications as any).orderServices.length > 0) || (Array.isArray(order.specifications?.additionalServices) && (order.specifications as any).additionalServices.length > 0))" class="pt-3 border-t border-gray-200">
                     <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Дополнительные услуги</label>
                     <div class="space-y-2">
                       <div
-                        v-for="(service, index) in (order.specifications.servicesList || order.specifications.orderServices || order.specifications.additionalServices)"
+                        v-for="(service, index) in (order && order.specifications ? (order.specifications.servicesList || order.specifications.orderServices || order.specifications.additionalServices) : [])"
                         :key="index"
                         class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div class="flex-1">
-                          <p class="text-sm font-medium text-gray-900">{{ service.name || service.service_name || service.title || `Услуга ${index + 1}` }}</p>
+                          <p class="text-sm font-medium text-gray-900">{{ (service as any)?.name || (service as any)?.service_name || (service as any)?.title || `Услуга ${index + 1}` }}</p>
                           <p class="text-xs text-gray-500">
-                            <span v-if="service.id || service.service_id">ID: {{ service.id || service.service_id }}</span>
-                            <span v-if="service.description" class="block mt-1">{{ service.description }}</span>
+                            <span v-if="(service as any)?.id || (service as any)?.service_id">ID: {{ (service as any)?.id || (service as any)?.service_id }}</span>
+                            <span v-if="(service as any)?.description" class="block mt-1">{{ (service as any)?.description }}</span>
                           </p>
                         </div>
                         <div class="text-right">
@@ -179,10 +179,10 @@
                         class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                       >
                         <div class="flex-1">
-                          <p class="text-sm font-medium text-gray-900">{{ service.name || service.service_name || key }}</p>
+                          <p class="text-sm font-medium text-gray-900">{{ (service as any)?.name || (service as any)?.service_name || key }}</p>
                           <p class="text-xs text-gray-500">
-                            <span v-if="service.id">ID: {{ service.id }}</span>
-                            <span v-if="service.description" class="block mt-1">{{ service.description }}</span>
+                            <span v-if="(service as any)?.id">ID: {{ (service as any)?.id }}</span>
+                            <span v-if="(service as any)?.description" class="block mt-1">{{ (service as any)?.description }}</span>
                           </p>
                         </div>
                         <div class="text-right">
@@ -548,7 +548,7 @@ const emit = defineEmits<Emits>()
 const { loadColors, getColorValue: getServerColorValue, getColorName: getServerColorName } = useColors()
 
 // Используем композабл для работы с услугами
-const { loadServices, getServicePrice, getServiceName } = useServices()
+const { loadServices, getServicePrice } = useServices()
 
 const getStatusClass = (status: string | undefined) => {
   if (!status) return 'bg-gray-100 text-gray-800'
@@ -650,7 +650,7 @@ const formatFileSize = (bytes: number | undefined) => {
   return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
 }
 
-const getColorValue = (colorInfo: any) => {
+const getColorValue = (colorInfo: unknown): string => {
   // Если это число (ID цвета), получаем с сервера
   if (typeof colorInfo === 'number') {
     const serverColor = getServerColorValue(colorInfo)
@@ -680,14 +680,14 @@ const getColorValue = (colorInfo: any) => {
   }
   
   // Если это объект с цветом
-  if (colorInfo?.color) return colorInfo.color
-  if (colorInfo?.value) return colorInfo.value
-  if (colorInfo?.hex) return colorInfo.hex
+  if ((colorInfo as any)?.color) return (colorInfo as any).color
+  if ((colorInfo as any)?.value) return (colorInfo as any).value
+  if ((colorInfo as any)?.hex) return (colorInfo as any).hex
   
   return '#cccccc'
 }
 
-const getColorName = (colorInfo: any, index: number) => {
+const getColorName = (colorInfo: unknown, index: number): string => {
   // Если это число (ID цвета), получаем название с сервера
   if (typeof colorInfo === 'number') {
     const serverName = getServerColorName(colorInfo)
@@ -714,7 +714,7 @@ const getColorName = (colorInfo: any, index: number) => {
   }
   
   // Если это объект с названием
-  return colorInfo?.name || colorInfo?.label || colorInfo?.title || `Цвет ${index + 1}`
+  return (colorInfo as any)?.name || (colorInfo as any)?.label || (colorInfo as any)?.title || `Цвет ${index + 1}`
 }
 
 const getServicePriceById = (serviceInfo: any) => {

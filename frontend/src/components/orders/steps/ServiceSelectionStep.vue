@@ -168,10 +168,7 @@ const allErrors = computed(() => {
   return { ...props.errors, ...localErrors.value }
 })
 
-const isValid = computed(() => {
-  const servicesError = validateServices()
-  return !servicesError
-})
+// Removed unused isValid computed
 
 // Auto-select preselected service when services are loaded
 const selectPreselectedService = () => {
@@ -300,17 +297,7 @@ const getServiceCardClasses = (service: Service) => {
 
 
 
-const formatFactorName = (key: string) => {
-  const factorNames: Record<string, string> = {
-    material: 'Материал',
-    quality: 'Качество',
-    urgency: 'Срочность',
-    size: 'Размер',
-    complexity: 'Сложность',
-    postProcessing: 'Постобработка'
-  }
-  return factorNames[key] || key
-}
+// Removed unused formatFactorName function
 </script>
 
 <style scoped>

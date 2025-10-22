@@ -246,7 +246,7 @@ const submitReview = async () => {
     }
     
     // Add image files
-    formData.images.forEach((image, index) => {
+    formData.images.forEach((image) => {
       if (image.file) {
         submitData.append('images', image.file)
       }

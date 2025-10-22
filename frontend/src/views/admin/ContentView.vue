@@ -324,11 +324,11 @@
     <!-- Create/Edit Content Modal -->
     <ContentModal
       v-if="showCreateModal || showEditModal"
-      :content="selectedContent"
+      :content="selectedContentForModal as any"
       :is-edit="showEditModal"
       :groups="groups"
       @close="closeModals"
-      @saved="handleContentSaved"
+      @saved="handleContentSaved as any"
     />
 
     <!-- Delete Confirmation Modal -->
@@ -348,29 +348,38 @@ import AdminLayout from '@/components/admin/AdminLayout.vue'
 import ContentModal from '@/components/admin/ContentModal.vue'
 import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal.vue'
 import { api } from '@/services/api'
+import type { Content } from '@/types'
 
-interface Content {
-  id: number
-  key: string
+interface ContentWithExtras extends Content {
   content_type: string
   content?: string
   json_content?: any
-  description?: string
   group_name?: string
   is_active: boolean
   sort_order: string
-  created_at: string
-  updated_at: string
 }
 
-const content = ref<Content[]>([])
+const content = ref<ContentWithExtras[]>([])
 const groups = ref<string[]>([])
 const loading = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
-const selectedContent = ref<Content | null>(null)
-const contentToDelete = ref<Content | null>(null)
+const selectedContent = ref<ContentWithExtras | null>(null)
+
+// Computed для преобразования ContentWithExtras в Content для модального окна
+const selectedContentForModal = computed(() => {
+  if (!selectedContent.value) return null
+  return {
+    id: selectedContent.value.id,
+    key: selectedContent.value.key,
+    value: selectedContent.value.value,
+    description: selectedContent.value.description,
+    created_at: selectedContent.value.created_at,
+    updated_at: selectedContent.value.updated_at
+  } as Content
+})
+const contentToDelete = ref<ContentWithExtras | null>(null)
 
 // Filters
 const filters = ref({
@@ -469,11 +478,11 @@ const getTypeText = (type: string) => {
   return texts[type as keyof typeof texts] || type
 }
 
-const getContentPreview = (item: Content) => {
+const getContentPreview = (item: ContentWithExtras) => {
   if (item.content_type === 'json' && item.json_content) {
     return JSON.stringify(item.json_content).substring(0, 100)
   }
-  return item.content?.substring(0, 100) || 'Пусто'
+  return item.content?.substring(0, 100) || item.value?.substring(0, 100) || 'Пусто'
 }
 
 const resetFilters = () => {
@@ -508,12 +517,12 @@ const loadGroups = async () => {
   }
 }
 
-const editContent = (item: Content) => {
+const editContent = (item: ContentWithExtras) => {
   selectedContent.value = item
   showEditModal.value = true
 }
 
-const deleteContent = (item: Content) => {
+const deleteContent = (item: ContentWithExtras) => {
   contentToDelete.value = item
   showDeleteModal.value = true
 }
@@ -538,13 +547,22 @@ const closeModals = () => {
 }
 
 const handleContentSaved = (savedContent: Content) => {
+  const contentWithExtras: ContentWithExtras = {
+    ...savedContent,
+    content_type: 'text',
+    content: savedContent.value,
+    group_name: '',
+    is_active: true,
+    sort_order: '0'
+  }
+  
   if (showEditModal.value) {
     const index = content.value.findIndex(c => c.id === savedContent.id)
     if (index !== -1) {
-      content.value[index] = savedContent
+      content.value[index] = contentWithExtras
     }
   } else {
-    content.value.unshift(savedContent)
+    content.value.unshift(contentWithExtras)
   }
   closeModals()
   loadGroups() // Обновляем список групп

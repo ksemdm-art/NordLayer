@@ -1,0 +1,422 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Frontend Tests and Build
+  frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run ESLint
+      run: |
+        cd frontend
+        npm run lint
+    
+    - name: Run TypeScript check
+      run: |
+        cd frontend
+        npx vue-tsc --noEmit
+    
+    - name: Run unit tests
+      run: |
+        cd frontend
+        npm run test:unit
+    
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build:prod
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: frontend/dist/
+        retention-days: 7
+
+  # Backend Tests
+  backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-cov pytest-xdist
+    
+    - name: Setup test environment
+      run: |
+        cd backend
+        cp .env.example .env
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> .env
+        echo "REDIS_URL=redis://localhost:6379" >> .env
+        echo "ENVIRONMENT=testing" >> .env
+    
+    - name: Run database migrations
+      run: |
+        cd backend
+        alembic upgrade head
+    
+    - name: Run tests
+      run: |
+        cd backend
+        pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Telegram Bot Tests
+  telegram-bot:
+    runs-on: ubuntu-latest
+    
+    services:
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        cd telegram-bot
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov
+    
+    - name: Setup test environment
+      run: |
+        cd telegram-bot
+        cp .env.example .env
+        echo "TELEGRAM_BOT_TOKEN=test_token" >> .env
+        echo "API_BASE_URL=http://localhost:8000" >> .env
+        echo "ENVIRONMENT=testing" >> .env
+    
+    - name: Run tests
+      run: |
+        cd telegram-bot
+        pytest -v --cov=. --cov-report=xml
+
+  # Security Scanning
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+    
+    - name: Setup Python for security checks
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Python security check
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install safety bandit
+        safety check -r requirements.txt
+        bandit -r app/ -f json -o bandit-report.json || true
+    
+    - name: Setup Node.js for security checks
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Node.js security check
+      run: |
+        cd frontend
+        npm ci
+        npm audit --audit-level moderate
+
+  # Build Docker Images
+  build:
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, telegram-bot, security]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download frontend artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-dist
+        path: frontend/dist/
+    
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile.prod
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/printing-platform-backend:latest
+          ${{ secrets.DOCKER_USERNAME }}/printing-platform-backend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/printing-platform-frontend:latest
+          ${{ secrets.DOCKER_USERNAME }}/printing-platform-frontend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push telegram bot image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./telegram-bot
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/printing-platform-telegram:latest
+          ${{ secrets.DOCKER_USERNAME }}/printing-platform-telegram:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Deploy to Production
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Deploy to server
+      run: |
+        # Create deployment directory
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p /opt/printing-platform"
+        
+        # Sync necessary files
+        rsync -avz --delete \
+          --include='docker-compose.prod.yml' \
+          --include='.env.production.template' \
+          --include='nginx/' \
+          --include='monitoring/' \
+          --include='scripts/' \
+          --exclude='*' \
+          ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/opt/printing-platform/
+    
+    - name: Execute deployment
+      run: |
+        ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'EOF'
+          cd /opt/printing-platform
+          
+          # Setup environment if not exists
+          if [ ! -f .env ]; then
+            cp .env.production.template .env
+            
+            # Generate secure secrets
+            SECRET_KEY=$(openssl rand -hex 32)
+            DB_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+            POSTGRES_PASSWORD=$(openssl rand -base64 16 | tr -d "=+/" | cut -c1-16)
+            
+            # Update environment variables
+            sed -i "s/your_secure_password_here/$DB_PASSWORD/" .env
+            sed -i "s/your_postgres_password_here/$POSTGRES_PASSWORD/" .env
+            sed -i "s/your_very_secure_secret_key_here_min_32_chars/$SECRET_KEY/" .env
+            sed -i "s/yourdomain.com/${{ secrets.DOMAIN_NAME }}/" .env
+            sed -i "s/your_telegram_bot_token_here/${{ secrets.TELEGRAM_BOT_TOKEN }}/" .env
+            sed -i "s/123456789,987654321/${{ secrets.TELEGRAM_ADMIN_IDS }}/" .env
+            
+            # Set Docker image tags
+            echo "BACKEND_IMAGE=${{ secrets.DOCKER_USERNAME }}/printing-platform-backend:${{ github.sha }}" >> .env
+            echo "FRONTEND_IMAGE=${{ secrets.DOCKER_USERNAME }}/printing-platform-frontend:${{ github.sha }}" >> .env
+            echo "TELEGRAM_IMAGE=${{ secrets.DOCKER_USERNAME }}/printing-platform-telegram:${{ github.sha }}" >> .env
+          fi
+          
+          # Pull latest images
+          sudo docker-compose -f docker-compose.prod.yml pull
+          
+          # Deploy with zero-downtime
+          sudo docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+          
+          # Wait for services to be ready
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          # Run database migrations
+          sudo docker-compose -f docker-compose.prod.yml exec -T backend alembic upgrade head
+          
+          # Clean up old images
+          sudo docker image prune -f
+        EOF
+    
+    - name: Health check
+      run: |
+        # Wait for deployment to stabilize
+        sleep 60
+        
+        # Check service health
+        HEALTH_CHECK=$(ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+          cd /opt/printing-platform
+          sudo docker-compose -f docker-compose.prod.yml ps --format json | jq -r '.[].State' | grep -c 'running'
+        ")
+        
+        if [ "$HEALTH_CHECK" -ge "3" ]; then
+          echo "✅ Deployment successful! $HEALTH_CHECK services running"
+        else
+          echo "❌ Deployment failed! Only $HEALTH_CHECK services running"
+          
+          # Show logs for debugging
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+            cd /opt/printing-platform
+            sudo docker-compose -f docker-compose.prod.yml logs --tail=50
+          "
+          exit 1
+        fi
+    
+    - name: Smoke tests
+      run: |
+        # Test API endpoint
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.DOMAIN_NAME }}/api/health)
+        if [ "$RESPONSE" = "200" ]; then
+          echo "✅ API health check passed"
+        else
+          echo "❌ API health check failed (HTTP $RESPONSE)"
+          exit 1
+        fi
+        
+        # Test frontend
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ secrets.DOMAIN_NAME }})
+        if [ "$RESPONSE" = "200" ]; then
+          echo "✅ Frontend health check passed"
+        else
+          echo "❌ Frontend health check failed (HTTP $RESPONSE)"
+          exit 1
+        fi
+    
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "🚀 Deployment to production completed successfully!"
+        echo "🌐 Application is available at: https://${{ secrets.DOMAIN_NAME }}"
+    
+    - name: Notify deployment failure
+      if: failure()
+      run: |
+        echo "❌ Deployment to production failed!"
+        echo "Check the logs above for details."

@@ -43,9 +43,9 @@ vi.mock('@heroicons/vue/24/solid', () => ({
 }))
 
 describe('OrderForm', () => {
-  let wrapper: any
-  let router: any
-  let pinia: any
+  let wrapper: unknown
+  let router: unknown
+  let pinia: unknown
 
   beforeEach(() => {
     router = createRouter({
@@ -84,7 +84,7 @@ describe('OrderForm', () => {
   it('shows correct step titles', () => {
     const stepTitles = ['Выбор услуги', 'Загрузка файлов', 'Детали заказа', 'Подтверждение']
     
-    stepTitles.forEach((title, index) => {
+    stepTitles.forEach((title) => {
       expect(wrapper.text()).toContain(title)
     })
   })

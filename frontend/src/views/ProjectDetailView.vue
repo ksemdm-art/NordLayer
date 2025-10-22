@@ -390,10 +390,7 @@ const showImageModal = ref(false)
 const mockRelatedProjects: Project[] = []
 
 // Computed properties
-const selectedImage = computed(() => {
-  if (!project.value?.images || project.value.images.length === 0) return null
-  return project.value.images[selectedImageIndex.value] || project.value.images[0]
-})
+// Removed unused selectedImage computed
 
 const relatedProjects = computed(() => {
   // In a real app, this would filter projects by category or other criteria

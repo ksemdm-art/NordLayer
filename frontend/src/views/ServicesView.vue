@@ -81,7 +81,7 @@
                   </h4>
                   <ul class="space-y-3">
                     <li 
-                      v-for="(feature, featureIndex) in service.features" 
+                      v-for="feature in service.features" 
                       :key="feature"
                       class="flex items-start text-sm text-primary-600 group/feature"
                     >
@@ -197,7 +197,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-// Removed design-system imports - using native HTML elements instead
 import { useContent } from '@/services/content'
 import { api } from '@/services/api'
 import ServiceIcon from '@/components/ServiceIcon.vue'

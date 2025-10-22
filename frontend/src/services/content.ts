@@ -132,7 +132,7 @@ class ContentService {
     return this.cache.has(key)
   }
 
-  private setCache(key: string, value: any): void {
+  private setCache(key: string, value: unknown): void {
     this.cache.set(key, value)
     this.cacheExpiry.set(key, Date.now() + this.CACHE_DURATION)
   }

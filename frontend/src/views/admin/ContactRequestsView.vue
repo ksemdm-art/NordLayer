@@ -334,7 +334,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   EnvelopeIcon, 
   EyeIcon, 

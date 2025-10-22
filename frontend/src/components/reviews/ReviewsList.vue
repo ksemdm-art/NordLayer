@@ -83,7 +83,7 @@
       <div class="text-center py-12">
         <ExclamationTriangleIcon class="w-12 h-12 text-error-500 mx-auto mb-4" />
         <p class="text-error-600 mb-4">{{ error }}</p>
-        <button @click="loadReviews" class="retry-button">
+        <button @click="() => loadReviews()" class="retry-button">
           Попробовать снова
         </button>
       </div>
@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { StarIcon, ExclamationTriangleIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
 import ReviewCard from './ReviewCard.vue'
 

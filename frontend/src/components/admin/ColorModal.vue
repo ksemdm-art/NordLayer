@@ -235,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue'
+import { reactive } from 'vue'
 import { ColorType, type Color, type GradientStop } from '@/api/colors'
 
 interface Props {

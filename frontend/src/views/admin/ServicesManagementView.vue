@@ -386,7 +386,7 @@
       :service="selectedService"
       :is-edit="showEditModal"
       @close="closeModals"
-      @saved="handleServiceSaved"
+      @saved="handleServiceSaved as any"
     />
   </AdminLayout>
 </template>
@@ -397,21 +397,13 @@ import AdminLayout from '@/components/admin/AdminLayout.vue'
 import ServiceModal from '@/components/admin/ServiceModal.vue'
 import ServiceIcon from '@/components/ServiceIcon.vue'
 import { api } from '@/services/api'
+import type { Service } from '@/types'
 
-interface Service {
-  id: number
-  name: string
-  description: string
+interface ServiceWithExtras extends Service {
   price_factors?: any
-  features?: string[]
-  is_active: boolean
-  category?: string
-  icon?: string
-  created_at: string
-  updated_at: string
 }
 
-const services = ref<Service[]>([])
+const services = ref<ServiceWithExtras[]>([])
 const loading = ref(false)
 const toggleLoading = ref<Set<number>>(new Set()) // Отслеживаем загрузку для каждой услуги отдельно
 const notification = ref<{show: boolean, message: string, type: 'success' | 'error'}>({
@@ -525,7 +517,8 @@ const getCategoryText = (category?: string) => {
 
 
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string) => {
+  if (!dateString) return 'Не указано'
   return new Date(dateString).toLocaleDateString('ru-RU')
 }
 

@@ -297,7 +297,7 @@ const validateField = (field: keyof ContactFormData) => {
       }
       break
       
-    case 'email':
+    case 'email': {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!formData.email.trim()) {
         errors.email = 'Email обязателен для заполнения'
@@ -307,6 +307,7 @@ const validateField = (field: keyof ContactFormData) => {
         delete errors.email
       }
       break
+    }
       
     case 'phone':
       if (formattedPhone.value && formattedPhone.value.length > 0) {

@@ -296,7 +296,7 @@ const showStatusModal = ref(false)
 const selectedOrder = ref<Order | null>(null)
 
 // Используем композабл для работы с цветами
-const { loadColors, getColorValue: getServerColorValue, getColorName: getServerColorName } = useColors()
+const { loadColors } = useColors()
 
 // Filters
 const filters = ref({
@@ -409,76 +409,38 @@ const truncateText = (text: string | undefined | null, length: number) => {
   return text.substring(0, length) + '...'
 }
 
-const isDeliveryNeeded = (deliveryNeeded: any): boolean => {
+const isDeliveryNeeded = (deliveryNeeded: unknown): boolean => {
   return deliveryNeeded === true || deliveryNeeded === 'true'
 }
 
 
 
-const getColorValue = (colorInfo: any) => {
-  // Если это число (ID цвета), получаем с сервера
-  if (typeof colorInfo === 'number') {
-    const serverColor = getServerColorValue(colorInfo)
-    // Fallback карта цветов если сервер не отвечает
-    if (serverColor === '#cccccc') {
-      const fallbackColors: Record<number, string> = {
-        1: '#FF0000', 2: '#00FF00', 3: '#0000FF', 4: '#FFFF00',
-        5: '#FF00FF', 6: '#00FFFF', 7: '#FFA500', 8: '#800080',
-        9: '#FFC0CB', 10: '#000000', 11: '#FFFFFF', 12: '#808080'
-      }
-      return fallbackColors[colorInfo] || '#cccccc'
-    }
-    return serverColor
-  }
-  
-  if (typeof colorInfo === 'string') {
-    // Если это строка с числом (ID цвета)
-    if (/^\d+$/.test(colorInfo)) {
-      return getColorValue(parseInt(colorInfo))
-    }
-    return colorInfo
-  }
-  
-  return colorInfo?.color || colorInfo?.value || '#cccccc'
-}
-
-const getColorName = (colorInfo: any, index: number) => {
-  // Если это число (ID цвета), получаем название с сервера
-  if (typeof colorInfo === 'number') {
-    const serverName = getServerColorName(colorInfo)
-    // Fallback карта названий если сервер не отвечает
-    if (serverName === `Цвет #${colorInfo}`) {
-      const fallbackNames: Record<number, string> = {
-        1: 'Красный', 2: 'Зеленый', 3: 'Синий', 4: 'Желтый',
-        5: 'Пурпурный', 6: 'Голубой', 7: 'Оранжевый', 8: 'Фиолетовый',
-        9: 'Розовый', 10: 'Черный', 11: 'Белый', 12: 'Серый'
-      }
-      return fallbackNames[colorInfo] || `Цвет #${colorInfo}`
-    }
-    return serverName
-  }
-  
-  if (typeof colorInfo === 'string') {
-    // Если это строка с числом (ID цвета)
-    if (/^\d+$/.test(colorInfo)) {
-      return getColorName(parseInt(colorInfo), index)
-    }
-    return colorInfo
-  }
-  
-  return colorInfo?.name || colorInfo?.label || `Цвет ${index + 1}`
-}
+// Removed unused getColorValue and getColorName functions
 
 const getServicesCount = (order: Order) => {
   // Подсчитываем количество услуг в заказе из разных возможных полей
-  const servicesFromSpecs = Array.isArray(order.specifications?.services) ? order.specifications.services.length : 0
-  const selectedServices = order.specifications?.selectedServices?.length || 0
-  const servicesList = order.specifications?.servicesList?.length || 0
-  const orderServices = order.specifications?.orderServices?.length || 0
-  const additionalServices = order.specifications?.additionalServices?.length || 0
+  const servicesFromSpecs = Array.isArray(order.specifications?.services) ? order.specifications!.services.length : 0
+  
+  const selectedServices = order.specifications && Array.isArray(order.specifications.selectedServices) 
+    ? order.specifications.selectedServices.length 
+    : 0
+    
+  const servicesList = order.specifications && Array.isArray(order.specifications.servicesList) 
+    ? order.specifications.servicesList.length 
+    : 0
+    
+  const orderServices = order.specifications && Array.isArray(order.specifications.orderServices) 
+    ? order.specifications.orderServices.length 
+    : 0
+    
+  const additionalServices = order.specifications && Array.isArray(order.specifications.additionalServices) 
+    ? order.specifications.additionalServices.length 
+    : 0
   
   // Если services - объект, считаем количество ключей
-  const servicesObject = typeof order.specifications?.services === 'object' && order.specifications?.services && !Array.isArray(order.specifications.services)
+  const servicesObject = typeof order.specifications?.services === 'object' && 
+    order.specifications?.services && 
+    !Array.isArray(order.specifications.services)
     ? Object.keys(order.specifications.services).length
     : 0
   
@@ -502,7 +464,7 @@ const loadOrders = async () => {
     const rawOrders = response.data.data || []
     
     // Преобразуем данные к типу Order, извлекая поля из specifications
-    orders.value = rawOrders.map((order: any) => {
+    orders.value = rawOrders.map((order: Record<string, unknown>) => {
 
       
       const processedOrder = {
@@ -510,28 +472,43 @@ const loadOrders = async () => {
         // Новые поля контактов и доставки
         customer_email: order.customer_email || order.customer_contact,
         customer_phone: order.customer_phone,
-        alternative_contact: order.alternative_contact || order.specifications?.alternative_contact,
-        delivery_needed: order.delivery_needed || order.specifications?.delivery_needed,
-        delivery_details: order.delivery_details || order.specifications?.delivery_details,
+        alternative_contact: order.alternative_contact || (order.specifications as Record<string, unknown>)?.alternative_contact,
+        delivery_needed: order.delivery_needed || (order.specifications as Record<string, unknown>)?.delivery_needed,
+        delivery_details: order.delivery_details || (order.specifications as Record<string, unknown>)?.delivery_details,
         
         // Извлекаем поля из specifications для удобства
-        color: order.specifications?.color || order.specifications?.selectedColor?.color || order.specifications?.selectedColor || order.specifications?.printColor || order.specifications?.filamentColor,
-        color_name: order.specifications?.colorName || order.specifications?.selectedColor?.name || order.specifications?.color_name || order.specifications?.printColorName || order.specifications?.filamentColorName,
-        multi_color: order.specifications?.isMultiColor || order.specifications?.multiColor || order.specifications?.multi_color,
-        multi_colors: order.specifications?.multiColors || order.specifications?.selectedColors || order.specifications?.multi_colors,
-        quantity: order.specifications?.quantity,
-        infill: order.specifications?.infill,
-        material: order.specifications?.material,
-        quality: order.specifications?.quality,
-        urgency: order.specifications?.urgency,
-        files_info: order.specifications?.files_info || order.specifications?.files,
-        selected_gallery_items: order.specifications?.selected_gallery_items || order.specifications?.selectedGalleryItems,
-        delivery_method: order.specifications?.deliveryMethod,
-        payment_method: order.specifications?.paymentMethod,
-        delivery_address: order.specifications?.deliveryAddress,
-        delivery_city: order.specifications?.deliveryCity,
-        delivery_postal_code: order.specifications?.deliveryPostalCode,
-        service_name: order.specifications?.service_type || order.service?.name,
+        color: (order.specifications as Record<string, unknown>)?.color || 
+               ((order.specifications as Record<string, unknown>)?.selectedColor as Record<string, unknown>)?.color || 
+               (order.specifications as Record<string, unknown>)?.selectedColor || 
+               (order.specifications as Record<string, unknown>)?.printColor || 
+               (order.specifications as Record<string, unknown>)?.filamentColor,
+        color_name: (order.specifications as Record<string, unknown>)?.colorName || 
+                   ((order.specifications as Record<string, unknown>)?.selectedColor as Record<string, unknown>)?.name || 
+                   (order.specifications as Record<string, unknown>)?.color_name || 
+                   (order.specifications as Record<string, unknown>)?.printColorName || 
+                   (order.specifications as Record<string, unknown>)?.filamentColorName,
+        multi_color: (order.specifications as Record<string, unknown>)?.isMultiColor || 
+                    (order.specifications as Record<string, unknown>)?.multiColor || 
+                    (order.specifications as Record<string, unknown>)?.multi_color,
+        multi_colors: (order.specifications as Record<string, unknown>)?.multiColors || 
+                     (order.specifications as Record<string, unknown>)?.selectedColors || 
+                     (order.specifications as Record<string, unknown>)?.multi_colors,
+        quantity: (order.specifications as Record<string, unknown>)?.quantity,
+        infill: (order.specifications as Record<string, unknown>)?.infill,
+        material: (order.specifications as Record<string, unknown>)?.material,
+        quality: (order.specifications as Record<string, unknown>)?.quality,
+        urgency: (order.specifications as Record<string, unknown>)?.urgency,
+        files_info: (order.specifications as Record<string, unknown>)?.files_info || 
+                   (order.specifications as Record<string, unknown>)?.files,
+        selected_gallery_items: (order.specifications as Record<string, unknown>)?.selected_gallery_items || 
+                               (order.specifications as Record<string, unknown>)?.selectedGalleryItems,
+        delivery_method: (order.specifications as Record<string, unknown>)?.deliveryMethod,
+        payment_method: (order.specifications as Record<string, unknown>)?.paymentMethod,
+        delivery_address: (order.specifications as Record<string, unknown>)?.deliveryAddress,
+        delivery_city: (order.specifications as Record<string, unknown>)?.deliveryCity,
+        delivery_postal_code: (order.specifications as Record<string, unknown>)?.deliveryPostalCode,
+        service_name: (order.specifications as Record<string, unknown>)?.service_type || 
+                     (order.service as Record<string, unknown>)?.name,
         // Не показываем цены в админке согласно требованиям
         total_price: null,
         // Добавляем файлы если есть

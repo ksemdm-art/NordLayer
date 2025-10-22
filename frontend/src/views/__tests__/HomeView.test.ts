@@ -40,7 +40,7 @@ vi.mock('@/design-system/components', () => ({
 }))
 
 describe('HomeView', () => {
-  let wrapper: any
+  let wrapper: unknown
 
   beforeEach(async () => {
     await router.push('/')
@@ -62,7 +62,7 @@ describe('HomeView', () => {
   })
 
   it('shows advantages section', () => {
-    const advantagesSection = wrapper.find('.advantages')
+    // Check advantages section exists
     // The advantages are rendered in the template, so we check for their presence
     expect(wrapper.text()).toContain('Почему выбирают нас')
   })
@@ -88,7 +88,7 @@ describe('HomeView', () => {
 
   it('toggles FAQ items when clicked', async () => {
     const faqButtons = wrapper.findAll('button')
-    const faqButton = faqButtons.find((button: any) => 
+    const faqButton = faqButtons.find((button: unknown) => 
       button.text().includes('Какие материалы вы используете?')
     )
     

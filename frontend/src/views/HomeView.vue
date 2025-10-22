@@ -405,7 +405,6 @@ import { api } from '@/services/api'
 import { 
   ClockIcon,
   ShieldCheckIcon,
-  TruckIcon,
   UserIcon,
   ChevronDownIcon
 } from '@heroicons/vue/24/outline'
@@ -619,8 +618,8 @@ const getFallbackServices = () => [
   },
   {
     id: 2,
-    name: 'SLA Печать',
-    description: 'Высокодетализированные модели и ювелирные изделия',
+    name: '3D моделирование',
+    description: 'Воплотим ваши идеи в осязаемые предметы',
     icon: 'sparkles',
     is_active: true
   },

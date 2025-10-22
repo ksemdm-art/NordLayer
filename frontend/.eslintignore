@@ -1,0 +1,11 @@
+node_modules
+dist
+.nuxt
+.output
+.vite
+.env
+*.log
+coverage
+.nyc_output
+.storybook-out
+storybook-static

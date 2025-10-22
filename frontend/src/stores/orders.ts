@@ -87,7 +87,8 @@ export const useOrdersStore = defineStore('orders', () => {
       return newOrder
       
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Не удалось создать заказ'
+      const axiosError = err as { response?: { data?: { message?: string } } }
+      const errorMessage = axiosError.response?.data?.message || 'Не удалось создать заказ'
       error.value = errorMessage
       
       globalNotifications.error(
@@ -121,7 +122,8 @@ export const useOrdersStore = defineStore('orders', () => {
       return order
       
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Не удалось загрузить заказ'
+      const axiosError = err as { response?: { data?: { message?: string } } }
+      const errorMessage = axiosError.response?.data?.message || 'Не удалось загрузить заказ'
       error.value = errorMessage
       throw err
     } finally {
@@ -139,7 +141,8 @@ export const useOrdersStore = defineStore('orders', () => {
       return response.data
       
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Не удалось загрузить заказы'
+      const axiosError = err as { response?: { data?: { message?: string } } }
+      const errorMessage = axiosError.response?.data?.message || 'Не удалось загрузить заказы'
       error.value = errorMessage
       throw err
     } finally {

@@ -70,10 +70,10 @@ export class STLViewer {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
     this.renderer.toneMappingExposure = 1.2 // Увеличиваем экспозицию для яркости
-    this.renderer.antialias = true
+    // antialias уже установлен в конструкторе WebGLRenderer
     
-    // Включаем физически корректные источники света
-    this.renderer.physicallyCorrectLights = true
+    // Включаем физически корректные источники света (устаревшее свойство)
+    // this.renderer.physicallyCorrectLights = true // Удалено в новых версиях Three.js
     
     // Создаем градиентный фон
     this.setupGradientBackground()
@@ -224,11 +224,11 @@ export class STLViewer {
     // Удаляем все объекты сетки из сцены
     this.gridObjects.forEach(obj => {
       this.scene.remove(obj)
-      if (obj.material) {
+      if ('material' in obj && obj.material) {
         if (Array.isArray(obj.material)) {
-          obj.material.forEach(mat => mat.dispose())
+          obj.material.forEach((mat: any) => mat.dispose())
         } else {
-          obj.material.dispose()
+          (obj.material as any).dispose()
         }
       }
     })
@@ -243,7 +243,7 @@ export class STLViewer {
     // Делаем оси полупрозрачными и ненавязчивыми
     if (axesHelper.material && Array.isArray(axesHelper.material)) {
       const materials = axesHelper.material as THREE.LineBasicMaterial[]
-      materials.forEach((material, index) => {
+      materials.forEach((material) => {
         if (material) {
           material.opacity = 0.6
           material.transparent = true

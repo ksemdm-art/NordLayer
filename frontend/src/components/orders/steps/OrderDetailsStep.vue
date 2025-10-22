@@ -209,7 +209,7 @@ const selectColor = (color: Color) => {
 
 const getSelectedColorName = (): string => {
   const selectedColor = availableColors.value.find(c => c.id === localData.specifications.selectedColor)
-  return selectedColor?.name || localData.specifications.colorName || 'Неизвестный цвет'
+  return selectedColor?.name || (localData.specifications.colorName as string) || 'Неизвестный цвет'
 }
 
 const loadColors = async () => {

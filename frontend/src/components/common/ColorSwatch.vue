@@ -51,9 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { type Color, ColorType, type SolidColor, type GradientColor, type MetallicColor } from '@/api/colors'
-import NewBadge from '@/components/common/NewBadge.vue'
 
 interface Props {
   color: Color
@@ -74,7 +72,7 @@ const props = withDefaults(defineProps<Props>(), {
   showPriceModifier: true
 })
 
-const emit = defineEmits<Emits>()
+defineEmits<Emits>()
 
 const getColorStyle = (color: Color): Record<string, string> => {
   if (color.type === ColorType.SOLID) {

@@ -237,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { api } from '@/services/api'
 import IconSelector from './IconSelector.vue'
 
@@ -245,7 +245,7 @@ interface Service {
   id?: number
   name: string
   description: string
-  price_factors?: any
+  price_factors?: Record<string, number>
   is_active: boolean
   category?: string
   features?: string[]

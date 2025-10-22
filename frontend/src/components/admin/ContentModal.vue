@@ -239,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { api } from '@/services/api'
 
 interface Content {
@@ -247,7 +247,7 @@ interface Content {
   key: string
   content_type: string
   content?: string
-  json_content?: any
+  json_content?: Record<string, unknown>
   description?: string
   group_name?: string
   is_active: boolean
@@ -288,7 +288,7 @@ const form = reactive({
 const jsonContentString = ref('')
 
 // Watch for JSON content changes and validate
-watch(jsonContentString, (newValue) => {
+watch(jsonContentString, (newValue: string) => {
   jsonError.value = ''
   if (newValue.trim()) {
     try {
@@ -303,7 +303,7 @@ watch(jsonContentString, (newValue) => {
 })
 
 // Watch for content type changes
-watch(() => form.content_type, (newType) => {
+watch(() => form.content_type, (newType: string) => {
   if (newType === 'json') {
     form.content = ''
   } else {

@@ -16,7 +16,8 @@
               Имя и фамилия *
             </label>
             <input
-              v-model="modelValue.customerName"
+              :value="modelValue.customerName"
+              @input="updateField('customerName', $event)"
               type="text"
               placeholder="Введите ваше имя"
               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200"
@@ -49,7 +50,8 @@
             Email *
           </label>
           <input
-            v-model="modelValue.customerEmail"
+            :value="modelValue.customerEmail"
+            @input="updateField('customerEmail', $event)"
             type="email"
             placeholder="your@email.com"
             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-all duration-200"
@@ -229,6 +231,17 @@ const formattedPhone = ref(props.modelValue.customerPhone || '')
 // Local validation errors
 const localErrors = ref<Record<string, string>>({})
 
+// Update field function
+const updateField = (field: string, event: Event) => {
+  const target = event.target as HTMLInputElement
+  const value = target.value
+  const updatedData = {
+    ...props.modelValue,
+    [field]: value
+  }
+  emit('update:modelValue', updatedData)
+}
+
 // Validation functions
 const validateName = (name: string): string => {
   if (!name?.trim()) {
@@ -270,7 +283,7 @@ const validateDelivery = (): string => {
 // Computed properties
 const selectedColorInfo = computed(() => {
   if (props.modelValue.specifications.isMultiColor) {
-    const colorCount = props.modelValue.specifications.multiColors?.length || 0
+    const colorCount = Array.isArray(props.modelValue.specifications.multiColors) ? props.modelValue.specifications.multiColors.length : 0
     return `Многоцветная печать (${colorCount} цветов)`
   }
   return props.modelValue.specifications.selectedColor ? 'Выбран' : null
@@ -415,7 +428,7 @@ watch(formattedPhone, (newPhone) => {
   }
 }, { immediate: true })
 
-watch(deliveryNeeded, (newDelivery) => {
+watch(deliveryNeeded, () => {
   const error = validateDelivery()
   if (error) {
     localErrors.value.deliveryNeeded = error

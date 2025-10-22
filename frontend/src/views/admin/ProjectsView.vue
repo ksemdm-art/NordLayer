@@ -283,7 +283,7 @@
       :project="editingProject"
       :is-editing="showEditModal"
       @close="closeModal"
-      @saved="handleProjectSaved"
+      @saved="handleProjectSaved as any"
     />
 
     <!-- Delete Confirmation Modal -->
@@ -499,13 +499,19 @@ const closeModal = () => {
 }
 
 const handleProjectSaved = (project: Project) => {
+  const projectWithDates: Project = {
+    ...project,
+    created_at: project.created_at || new Date().toISOString(),
+    updated_at: project.updated_at || new Date().toISOString()
+  }
+  
   if (showEditModal.value) {
     const index = projects.value.findIndex(p => p.id === project.id)
     if (index !== -1) {
-      projects.value[index] = project
+      projects.value[index] = projectWithDates
     }
   } else {
-    projects.value.unshift(project)
+    projects.value.unshift(projectWithDates)
   }
   closeModal()
 }

@@ -260,7 +260,8 @@
                 Выберите цвет для печати
               </label>
               <ColorSelector
-                v-model="modelValue.specifications.selectedColor"
+                :model-value="modelValue.specifications.selectedColor as any"
+                @update:model-value="updateSelectedColor"
                 :show-price-modifier="true"
                 @color-selected="handleColorSelected"
               />
@@ -272,9 +273,9 @@
                      :class="{ 'border-blue-500 bg-blue-50': modelValue.specifications.isMultiColor }">
                 <input
                   type="checkbox"
-                  v-model="modelValue.specifications.isMultiColor"
+                  :checked="!!modelValue.specifications.isMultiColor"
+                  @change="updateMultiColor"
                   class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                  @change="handleMultiColorChange"
                 />
                 <div>
                   <span class="font-medium">Многоцветная печать</span>
@@ -417,7 +418,7 @@ import ColorSwatch from '@/components/common/ColorSwatch.vue'
 import { uploadFile, formatFileSize, getFileExtension } from '@/utils/fileUpload'
 import { api } from '@/services/api'
 import { colorsApi, type Color } from '@/api/colors'
-import type { UploadedFile } from '@/types/orders'
+// import type { UploadedFile } from '@/types/orders' // Used in uploadFile function
 import type { OrderFormData } from '@/types/orders'
 import type { Project } from '@/types'
 
@@ -689,6 +690,30 @@ const handleImageError = (event: Event) => {
   img.className = 'w-full h-full object-contain bg-neutral-200'
 }
 
+// Update functions
+const updateSelectedColor = (colorId: number | null) => {
+  const updatedData = {
+    ...props.modelValue,
+    specifications: {
+      ...props.modelValue.specifications,
+      selectedColor: colorId
+    }
+  }
+  emit('update:modelValue', updatedData)
+}
+
+const updateMultiColor = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const updatedData = {
+    ...props.modelValue,
+    specifications: {
+      ...props.modelValue.specifications,
+      isMultiColor: target.checked
+    }
+  }
+  emit('update:modelValue', updatedData)
+}
+
 // Color methods
 const handleColorSelected = (color: Color | null) => {
   if (color) {
@@ -703,33 +728,24 @@ const handleColorSelected = (color: Color | null) => {
   }
 }
 
-const handleMultiColorChange = () => {
-  const updatedData = {
-    ...props.modelValue,
-    specifications: {
-      ...props.modelValue.specifications,
-      selectedColor: props.modelValue.specifications.isMultiColor ? null : props.modelValue.specifications.selectedColor,
-      multiColors: props.modelValue.specifications.isMultiColor ? (props.modelValue.specifications.multiColors || []) : []
-    }
-  }
-  emit('update:modelValue', updatedData)
-}
+// Removed unused handleMultiColorChange function
 
 const isColorSelectedForMulti = (colorId: number): boolean => {
-  return props.modelValue.specifications.multiColors?.includes(colorId) || false
+  return Array.isArray(props.modelValue.specifications.multiColors) ? props.modelValue.specifications.multiColors.includes(colorId) : false
 }
 
 const getSelectedMultiColors = (): number[] => {
-  return props.modelValue.specifications.multiColors || []
+  return Array.isArray(props.modelValue.specifications.multiColors) ? props.modelValue.specifications.multiColors : []
 }
 
 const getMultiColorIndex = (colorId: number): number => {
-  const index = props.modelValue.specifications.multiColors?.indexOf(colorId)
-  return index !== undefined && index >= 0 ? index + 1 : 0
+  const multiColors = Array.isArray(props.modelValue.specifications.multiColors) ? props.modelValue.specifications.multiColors : []
+  const index = multiColors.indexOf(colorId)
+  return index >= 0 ? index + 1 : 0
 }
 
 const toggleMultiColor = (color: Color) => {
-  const colors = [...(props.modelValue.specifications.multiColors || [])]
+  const colors = Array.isArray(props.modelValue.specifications.multiColors) ? [...props.modelValue.specifications.multiColors] : []
   const index = colors.indexOf(color.id)
   
   if (index >= 0) {

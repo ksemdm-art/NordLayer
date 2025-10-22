@@ -361,27 +361,20 @@ import AdminLayout from '@/components/admin/AdminLayout.vue'
 import ArticleModal from '@/components/admin/ArticleModal.vue'
 import DeleteConfirmationModal from '@/components/admin/DeleteConfirmationModal.vue'
 import { api } from '@/services/api'
+import type { Article } from '@/types'
 
-interface Article {
-  id: number
-  title: string
-  excerpt: string
-  content: string
-  featured_image?: string
+interface ArticleWithStatus extends Article {
   status: string
-  category: string
   views?: number
-  created_at: string
-  updated_at: string
 }
 
-const articles = ref<Article[]>([])
+const articles = ref<ArticleWithStatus[]>([])
 const loading = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
-const selectedArticle = ref<Article | null>(null)
-const articleToDelete = ref<Article | null>(null)
+const selectedArticle = ref<ArticleWithStatus | null>(null)
+const articleToDelete = ref<ArticleWithStatus | null>(null)
 
 // Filters
 const filters = ref({
@@ -479,7 +472,8 @@ const getCategoryText = (category: string) => {
   return texts[category as keyof typeof texts] || category
 }
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string) => {
+  if (!dateString) return 'Не указано'
   return new Date(dateString).toLocaleDateString('ru-RU')
 }
 
@@ -510,12 +504,12 @@ const loadArticles = async () => {
   }
 }
 
-const editArticle = (article: Article) => {
+const editArticle = (article: ArticleWithStatus) => {
   selectedArticle.value = article
   showEditModal.value = true
 }
 
-const deleteArticle = (article: Article) => {
+const deleteArticle = (article: ArticleWithStatus) => {
   articleToDelete.value = article
   showDeleteModal.value = true
 }
@@ -540,13 +534,19 @@ const closeModals = () => {
 }
 
 const handleArticleSaved = (article: Article) => {
+  const articleWithStatus: ArticleWithStatus = {
+    ...article,
+    status: article.is_published ? 'published' : 'draft',
+    views: 0
+  }
+  
   if (showEditModal.value) {
     const index = articles.value.findIndex(a => a.id === article.id)
     if (index !== -1) {
-      articles.value[index] = article
+      articles.value[index] = articleWithStatus
     }
   } else {
-    articles.value.unshift(article)
+    articles.value.unshift(articleWithStatus)
   }
   closeModals()
 }

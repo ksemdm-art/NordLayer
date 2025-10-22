@@ -96,8 +96,8 @@
                   >
                     <div class="w-5 h-5 flex-shrink-0">
                       <img 
-                        v-if="item.images?.[0]?.url" 
-                        :src="item.images[0].url" 
+                        v-if="item.images?.[0]?.image_path" 
+                        :src="item.images[0].image_path" 
                         :alt="item.title"
                         class="w-5 h-5 object-cover rounded"
                       />
@@ -146,7 +146,7 @@
                   </div>
                   
                   <!-- Multi-color display -->
-                  <div v-if="modelValue.specifications.isMultiColor && modelValue.specifications.multiColors?.length" class="spec-item full-width">
+                  <div v-if="modelValue.specifications.isMultiColor && Array.isArray(modelValue.specifications.multiColors) && modelValue.specifications.multiColors.length > 0" class="spec-item full-width">
                     <span class="spec-label">Многоцветная печать:</span>
                     <div class="flex flex-wrap gap-2 mt-2">
                       <div 
@@ -315,6 +315,7 @@ const isSubmitting = ref(false)
 const availableColors = ref<Color[]>([])
 
 // Computed properties
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const selectedService = computed(() => {
   return props.modelValue.services?.[0] || null
 })
@@ -350,6 +351,7 @@ const previewGalleryItem = (item: any) => {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formatPrice = (price: number | undefined) => {
   if (typeof price !== 'number' || isNaN(price)) {
     return '0'
@@ -372,8 +374,7 @@ const getSelectedColorHex = () => {
   const colorId = props.modelValue.specifications.selectedColor
   if (!colorId) return '#6b7280'
   
-  const color = availableColors.value.find(c => c.id === colorId)
-  return getColorHexById(colorId)
+  return getColorHexById(colorId as number)
 }
 
 const getColorNameById = (colorId: number) => {

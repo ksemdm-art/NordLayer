@@ -101,10 +101,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useColors } from '@/composables/useColors'
-import { colorsApi, type Color, ColorType, type SolidColor, type GradientColor, type MetallicColor } from '@/api/colors'
-import NewBadge from '@/components/common/NewBadge.vue'
+import { colorsApi, type Color, ColorType } from '@/api/colors'
 
 interface Props {
   modelValue?: number | null
@@ -180,18 +179,6 @@ const getColorTooltip = (color: Color): string => {
   return tooltip
 }
 
-const getTypeBadge = (type: ColorType): string => {
-  switch (type) {
-    case ColorType.SOLID:
-      return 'Обычный'
-    case ColorType.GRADIENT:
-      return 'Градиент'
-    case ColorType.METALLIC:
-      return 'Металлик'
-    default:
-      return ''
-  }
-}
 
 const getTypeLabel = (type: ColorType): string => {
   switch (type) {

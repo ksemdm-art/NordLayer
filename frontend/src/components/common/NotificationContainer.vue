@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { h } from 'vue'
 import { globalNotifications } from '@/composables/useNotifications'
 
 const { notifications, remove } = globalNotifications

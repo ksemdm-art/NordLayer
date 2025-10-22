@@ -173,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { colorsApi, type Color, ColorType } from '@/api/colors'
 import { useColors } from '@/composables/useColors'
 import ColorModal from '@/components/admin/ColorModal.vue'

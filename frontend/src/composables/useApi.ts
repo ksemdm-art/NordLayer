@@ -1,27 +1,23 @@
-import { ref, type Ref } from 'vue'
+import { ref } from 'vue'
 import api from '@/services/api'
 import type { AxiosError, AxiosResponse } from 'axios'
 
-interface ApiState<T> {
-  data: Ref<T | null>
-  loading: Ref<boolean>
-  error: Ref<string | null>
-}
+// Removed unused ApiState interface - functionality moved inline
 
-interface ApiOptions {
+interface ApiOptions<T = Record<string, unknown>> {
   immediate?: boolean
-  onSuccess?: (data: any) => void
+  onSuccess?: (data: T) => void
   onError?: (error: string) => void
 }
 
-export function useApi<T = any>() {
+export function useApi<T = unknown>() {
   const data = ref<T | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  const execute = async <R = T>(
+  const execute = async <R extends Record<string, unknown> = T extends Record<string, unknown> ? T : Record<string, unknown>>(
     apiCall: () => Promise<AxiosResponse<R>>,
-    options: ApiOptions = {}
+    options: ApiOptions<R> = {}
   ): Promise<R | null> => {
     try {
       loading.value = true
@@ -29,7 +25,7 @@ export function useApi<T = any>() {
 
       const response = await apiCall()
       // Handle backend response format
-      const responseData = (response.data as any)?.data || response.data
+      const responseData = (response.data as { data?: unknown })?.data || response.data
       data.value = responseData as unknown as T
       
       if (options.onSuccess) {
@@ -53,23 +49,23 @@ export function useApi<T = any>() {
     }
   }
 
-  const get = async <R = T>(url: string, options: ApiOptions = {}): Promise<R | null> => {
+  const get = async <R extends Record<string, unknown> = T extends Record<string, unknown> ? T : Record<string, unknown>>(url: string, options: ApiOptions<R> = {}): Promise<R | null> => {
     return execute(() => api.get<R>(url), options)
   }
 
-  const post = async <R = T>(url: string, payload?: any, options: ApiOptions = {}): Promise<R | null> => {
+  const post = async <R extends Record<string, unknown> = T extends Record<string, unknown> ? T : Record<string, unknown>>(url: string, payload?: unknown, options: ApiOptions<R> = {}): Promise<R | null> => {
     return execute(() => api.post<R>(url, payload), options)
   }
 
-  const put = async <R = T>(url: string, payload?: any, options: ApiOptions = {}): Promise<R | null> => {
+  const put = async <R extends Record<string, unknown> = T extends Record<string, unknown> ? T : Record<string, unknown>>(url: string, payload?: unknown, options: ApiOptions<R> = {}): Promise<R | null> => {
     return execute(() => api.put<R>(url, payload), options)
   }
 
-  const patch = async <R = T>(url: string, payload?: any, options: ApiOptions = {}): Promise<R | null> => {
+  const patch = async <R extends Record<string, unknown> = T extends Record<string, unknown> ? T : Record<string, unknown>>(url: string, payload?: unknown, options: ApiOptions<R> = {}): Promise<R | null> => {
     return execute(() => api.patch<R>(url, payload), options)
   }
 
-  const del = async <R = T>(url: string, options: ApiOptions = {}): Promise<R | null> => {
+  const del = async <R extends Record<string, unknown> = T extends Record<string, unknown> ? T : Record<string, unknown>>(url: string, options: ApiOptions<R> = {}): Promise<R | null> => {
     return execute(() => api.delete<R>(url), options)
   }
 
@@ -95,22 +91,22 @@ export function useApi<T = any>() {
 
 function getErrorMessage(error: AxiosError): string {
   if (error.response?.data) {
-    const responseData = error.response.data as any
+    const responseData = error.response.data as Record<string, unknown>
     
     // Handle different error response formats
     if (typeof responseData === 'string') {
       return responseData
     }
     
-    if (responseData.message) {
+    if (responseData.message && typeof responseData.message === 'string') {
       return responseData.message
     }
     
-    if (responseData.detail) {
+    if (responseData.detail && typeof responseData.detail === 'string') {
       return responseData.detail
     }
     
-    if (responseData.error) {
+    if (responseData.error && typeof responseData.error === 'string') {
       return responseData.error
     }
   }
@@ -123,14 +119,14 @@ function getErrorMessage(error: AxiosError): string {
 }
 
 // Specialized hooks for common API patterns
-export function useApiList<T = any>(url: string, options: ApiOptions = {}) {
+export function useApiList<T = unknown>(url: string, options: ApiOptions = {}) {
   const { immediate = true } = options
   const apiState = useApi<T[]>()
   
   // Initialize data as empty array instead of null
   apiState.data.value = [] as T[]
 
-  const fetchList = () => apiState.get<T[]>(url, options)
+  const fetchList = () => apiState.get(url, options) as any
 
   if (immediate) {
     fetchList()
@@ -143,13 +139,13 @@ export function useApiList<T = any>(url: string, options: ApiOptions = {}) {
   }
 }
 
-export function useApiItem<T = any>(url: string, options: ApiOptions = {}) {
+export function useApiItem<T = unknown>(url: string, options: ApiOptions = {}) {
   const { immediate = false } = options
   const apiState = useApi<T>()
 
   const fetchItem = (id?: string | number) => {
     const itemUrl = id ? `${url}/${id}` : url
-    return apiState.get<T>(itemUrl, options)
+    return apiState.get(itemUrl, options) as any
   }
 
   if (immediate) {

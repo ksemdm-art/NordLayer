@@ -46,9 +46,7 @@ services:
 
   # FastAPI Backend
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
+    image: ${BACKEND_IMAGE:-printing-platform-backend:latest}
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-printing_platform}
       - REDIS_URL=redis://redis:6379
@@ -83,11 +81,7 @@ services:
 
   # Vue.js Frontend
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-      args:
-        - VITE_API_URL=${FRONTEND_API_URL:-https://yourdomain.com}
+    image: ${FRONTEND_IMAGE:-printing-platform-frontend:latest}
     environment:
       - NODE_ENV=production
     healthcheck:
@@ -106,9 +100,7 @@ services:
 
   # Telegram Bot
   telegram-bot:
-    build:
-      context: ./telegram-bot
-      dockerfile: Dockerfile
+    image: ${TELEGRAM_IMAGE:-printing-platform-telegram:latest}
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - API_BASE_URL=http://backend:8000

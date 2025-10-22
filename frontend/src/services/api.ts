@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, { type AxiosResponse } from 'axios'
 import { globalNotifications } from '@/composables/useNotifications'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -88,7 +88,7 @@ api.interceptors.response.use(
         case 422:
           // Validation errors
           if (data?.detail && Array.isArray(data.detail)) {
-            const validationErrors = data.detail.map((err: any) => 
+            const validationErrors = data.detail.map((err: { loc?: string[]; msg?: string }) => 
               `${err.loc?.join('.')}: ${err.msg}`
             ).join(', ')
             globalNotifications.error(
@@ -131,7 +131,7 @@ api.interceptors.response.use(
 
 // Extend AxiosRequestConfig to include metadata
 declare module 'axios' {
-  interface AxiosRequestConfig {
+  interface InternalAxiosRequestConfig {
     metadata?: {
       startTime: Date
     }

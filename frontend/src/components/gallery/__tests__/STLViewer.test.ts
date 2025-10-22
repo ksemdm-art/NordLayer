@@ -58,7 +58,7 @@ vi.mock('three', () => ({
 // Mock Three.js examples
 vi.mock('three/examples/jsm/loaders/STLLoader.js', () => ({
   STLLoader: vi.fn(() => ({
-    load: vi.fn((url, onLoad, onProgress, onError) => {
+    load: vi.fn((url, onLoad, _onProgress, _onError) => {
       // Simulate successful load
       setTimeout(() => {
         const mockGeometry = {
@@ -105,7 +105,7 @@ global.ResizeObserver = vi.fn(() => ({
 }))
 
 describe('STLViewer', () => {
-  let wrapper: any
+  let wrapper: unknown
 
   beforeEach(() => {
     // Mock DOM methods

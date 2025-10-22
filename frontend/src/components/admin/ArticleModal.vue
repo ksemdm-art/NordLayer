@@ -210,8 +210,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { api } from '@/services/api'
+import type { Article } from '@/types'
 
-interface Article {
+interface ArticleForm {
   id?: number
   title: string
   excerpt: string
@@ -240,7 +241,7 @@ const emit = defineEmits<Emits>()
 const loading = ref(false)
 const error = ref('')
 
-const form = reactive({
+const form = reactive<ArticleForm>({
   title: '',
   excerpt: '',
   content: '',
@@ -301,7 +302,12 @@ const saveArticle = async () => {
       response = await api.post('/articles', form)
     }
     
-    emit('saved', response.data.data)
+    // Преобразуем ответ сервера в тип Article
+    const savedArticle: Article = {
+      ...response.data.data,
+      is_published: response.data.data.status === 'published'
+    }
+    emit('saved', savedArticle)
   } catch (err: any) {
     console.error('Error saving article:', err)
     error.value = err.response?.data?.message || 'Произошла ошибка при сохранении статьи'
@@ -317,7 +323,7 @@ onMounted(() => {
       excerpt: props.article.excerpt,
       content: props.article.content,
       featured_image: props.article.featured_image || '',
-      status: props.article.status,
+      status: props.article.is_published ? 'published' : 'draft',
       category: props.article.category
     })
   }

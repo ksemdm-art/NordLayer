@@ -80,8 +80,8 @@
               <!-- Dropdown menu -->
               <div
                 v-if="profileDropdownOpen"
-                class="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none"
-                @click.away="profileDropdownOpen = false"
+                class="profile-dropdown absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none"
+                @click.stop
               >
                 <button
                   @click="handleLogout"
@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -115,6 +115,16 @@ const authStore = useAuthStore()
 
 const sidebarOpen = ref(true)
 const profileDropdownOpen = ref(false)
+
+// Close dropdown when clicking outside
+onMounted(() => {
+  document.addEventListener('click', (event) => {
+    const target = event.target as Element
+    if (!target.closest('.profile-dropdown')) {
+      profileDropdownOpen.value = false
+    }
+  })
+})
 
 const userInitials = computed(() => {
   const user = authStore.user

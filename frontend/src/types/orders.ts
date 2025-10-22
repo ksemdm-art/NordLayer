@@ -12,12 +12,12 @@ export interface OrderFormData {
   deliveryAddress?: string
   deliveryCity?: string
   deliveryPostalCode?: string
-  specifications: Record<string, any>
+  specifications: OrderSpecification & Record<string, unknown>
   notes: string
   totalPrice: number
   // New fields for improved order form
   alternativeContact?: string  // Alternative contact method
-  deliveryNeeded?: boolean     // Whether delivery is needed
+  deliveryNeeded?: boolean | null     // Whether delivery is needed
   deliveryDetails?: string     // Delivery details when needed
 }
 

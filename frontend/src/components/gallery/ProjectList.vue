@@ -101,7 +101,7 @@ interface Props {
   projects: Project[]
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const router = useRouter()
 
 const navigateToProject = (project: Project) => {
